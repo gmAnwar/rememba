@@ -1,1 +1,1454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#0f0f0f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rememba">
+<title>Rememba</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --surface2: #242424;
+    --border: rgba(255,255,255,0.08);
+    --text: #f0ede8;
+    --text2: rgba(240,237,232,0.5);
+    --text3: rgba(240,237,232,0.25);
+    --green: #9FE1CB;
+    --green-dim: rgba(159,225,203,0.12);
+    --blue-dim: rgba(176,213,244,0.12);
+    --amber-dim: rgba(250,199,117,0.12);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
 
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    max-width: 430px;
+    margin: 0 auto;
+    overflow-x: hidden;
+  }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 32px;
+    gap: 0;
+  }
+
+  .login-logo {
+    width: 72px;
+    height: 72px;
+    border-radius: 22px;
+    background: var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 28px;
+  }
+
+  .login-logo svg { width: 36px; height: 36px; }
+
+  .login-title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .login-sub {
+    font-size: 15px;
+    color: var(--text2);
+    text-align: center;
+    line-height: 1.5;
+    margin-bottom: 48px;
+    max-width: 260px;
+  }
+
+  .btn-google {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--text);
+    color: #0f0f0f;
+    border: none;
+    border-radius: var(--radius);
+    padding: 14px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    max-width: 300px;
+    justify-content: center;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn-google:active { opacity: 0.85; transform: scale(0.98); }
+
+  .btn-google svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+  .login-disclaimer {
+    font-size: 12px;
+    color: var(--text3);
+    text-align: center;
+    margin-top: 24px;
+    line-height: 1.6;
+    max-width: 280px;
+  }
+
+  /* ── APP SCREEN ── */
+  #app-screen { display: none; }
+
+  /* Header */
+  .header {
+    padding: 52px 20px 0;
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .app-wordmark {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .avatar-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--green);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #04342C;
+    overflow: hidden;
+    transition: opacity 0.15s;
+  }
+
+  .avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
+  .avatar-btn:active { opacity: 0.7; }
+
+  .month-year {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .entry-count {
+    font-size: 13px;
+    color: var(--text3);
+    margin-bottom: 14px;
+  }
+
+  /* Day strip */
+  .day-strip {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 0 0 14px;
+    scrollbar-width: none;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .day-strip::-webkit-scrollbar { display: none; }
+
+  .day-pill {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    min-width: 44px;
+    transition: background 0.15s;
+    gap: 4px;
+    flex-shrink: 0;
+    border: none;
+    background: transparent;
+    color: var(--text);
+  }
+
+  .day-pill:hover { background: rgba(255,255,255,0.05); }
+  .day-pill.active { background: var(--text); }
+
+  .dp-name {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .day-pill.active .dp-name { color: rgba(15,15,15,0.45); }
+
+  .dp-num {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .day-pill.active .dp-num { color: #0f0f0f; }
+
+  .dp-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--green);
+  }
+
+  .day-pill.active .dp-dot { background: rgba(15,15,15,0.3); }
+  .dp-dot-empty { width: 4px; height: 4px; }
+
+  /* Timeline */
+  .timeline {
+    padding: 20px 20px 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .day-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 8px;
+    margin-bottom: 2px;
+  }
+
+  /* On This Day */
+  .otd-card {
+    background: rgba(159,225,203,0.05);
+    border: 0.5px solid rgba(159,225,203,0.18);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex;
+    gap: 12px;
+  }
+
+  .otd-icon { font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+
+  .otd-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+
+  .otd-text {
+    font-size: 13px;
+    color: var(--text2);
+    line-height: 1.55;
+  }
+
+  /* Entry cards */
+  .entry-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 0.5px solid var(--border);
+  }
+
+  .entry-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px 6px;
+  }
+
+  .entry-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .ei-note { background: rgba(240,237,232,0.08); }
+  .ei-photo { background: var(--blue-dim); }
+  .ei-audio { background: var(--green-dim); }
+  .ei-video { background: var(--amber-dim); }
+
+  .entry-meta { flex: 1; min-width: 0; }
+
+  .entry-author {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text2);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .entry-time {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 1px;
+  }
+
+  .privacy-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .pb-family { background: var(--green-dim); color: var(--green); }
+  .pb-private { background: rgba(240,237,232,0.06); color: var(--text3); }
+
+  .entry-body { padding: 4px 14px 14px; }
+
+  .entry-text {
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.55;
+    margin-bottom: 8px;
+  }
+
+  /* Photo grid */
+  .photo-grid { border-radius: 10px; overflow: hidden; display: grid; gap: 2px; }
+  .photo-grid.g1 { grid-template-columns: 1fr; }
+  .photo-grid.g2 { grid-template-columns: 1fr 1fr; }
+  .photo-grid.g3 { grid-template-columns: 1fr 1fr; }
+
+  .photo-thumb {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    background: var(--surface2);
+    cursor: pointer;
+    display: block;
+  }
+
+  .photo-thumb.wide { aspect-ratio: 16/9; grid-column: 1/-1; }
+
+  /* Audio player */
+  .audio-player {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255,255,255,0.04);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+  }
+
+  .play-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--green);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+
+  .play-btn:active { opacity: 0.8; }
+  .play-btn svg { width: 12px; height: 12px; fill: #04342C; margin-left: 1px; }
+
+  .audio-waves {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 24px;
+  }
+
+  .wave-bar {
+    width: 3px;
+    border-radius: 2px;
+    background: rgba(159,225,203,0.35);
+    flex-shrink: 0;
+  }
+
+  .audio-dur { font-size: 11px; color: var(--text3); font-weight: 600; }
+
+  /* Tags */
+  .tag-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+
+  .tag {
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .tag-person { background: rgba(240,237,232,0.06); color: var(--text2); }
+
+  /* Empty state */
+  .empty-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px;
+    gap: 12px;
+    opacity: 0.5;
+  }
+
+  .empty-day-icon { font-size: 32px; }
+  .empty-day-text { font-size: 14px; color: var(--text2); text-align: center; }
+
+  /* Upload progress */
+  .upload-progress {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .upload-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .upload-label { font-size: 13px; color: var(--text2); }
+
+  /* FAB bar */
+  .fab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    padding: 16px 20px 34px;
+    background: linear-gradient(to top, #0f0f0f 65%, transparent);
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .fab-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    background: var(--surface);
+    border: 0.5px solid rgba(255,255,255,0.09);
+    border-radius: 14px;
+    padding: 11px 14px 9px;
+    cursor: pointer;
+    flex: 1;
+    max-width: 72px;
+    transition: background 0.15s, transform 0.1s;
+    color: var(--text2);
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  .fab-btn:hover { background: var(--surface2); }
+  .fab-btn:active { transform: scale(0.95); }
+  .fab-icon { font-size: 19px; }
+
+  .fab-main {
+    background: var(--text);
+    color: #0f0f0f;
+    border-color: transparent;
+    max-width: 60px;
+    border-radius: 18px;
+  }
+
+  .fab-main:hover { background: #e8e5e0; }
+  .fab-main .fab-icon { font-size: 22px; }
+
+  /* Bottom sheet */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    display: none;
+    align-items: flex-end;
+    z-index: 200;
+    backdrop-filter: blur(2px);
+  }
+
+  .overlay.open { display: flex; }
+
+  .sheet {
+    background: #1c1c1e;
+    border-radius: 24px 24px 0 0;
+    padding: 12px 20px 40px;
+    width: 100%;
+    max-width: 430px;
+    margin: 0 auto;
+    animation: slideUp 0.2s ease-out;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .sheet-handle {
+    width: 36px;
+    height: 4px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 2px;
+    margin: 0 auto 20px;
+  }
+
+  .sheet-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+
+  .sheet-options { display: flex; flex-direction: column; gap: 8px; }
+
+  .sheet-opt {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255,255,255,0.05);
+    border: 0.5px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 13px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    width: 100%;
+    text-align: left;
+  }
+
+  .sheet-opt:hover { background: rgba(255,255,255,0.08); }
+  .sheet-opt:active { transform: scale(0.99); }
+
+  .so-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    flex-shrink: 0;
+  }
+
+  .so-label {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .so-sub {
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 1px;
+  }
+
+  /* Note sheet */
+  .note-area {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    color: var(--text);
+    font-size: 15px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    min-height: 120px;
+    line-height: 1.5;
+  }
+
+  .note-area::placeholder { color: var(--text3); }
+  .note-area:focus { border-color: rgba(159,225,203,0.3); }
+
+  .privacy-select {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .priv-btn {
+    flex: 1;
+    padding: 9px;
+    border-radius: 10px;
+    border: 0.5px solid var(--border);
+    background: transparent;
+    color: var(--text2);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .priv-btn.selected {
+    background: var(--green-dim);
+    border-color: rgba(159,225,203,0.3);
+    color: var(--green);
+  }
+
+  .sheet-submit {
+    width: 100%;
+    margin-top: 14px;
+    padding: 14px;
+    background: var(--text);
+    color: #0f0f0f;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .sheet-submit:disabled { opacity: 0.4; cursor: not-allowed; }
+  .sheet-submit:not(:disabled):active { opacity: 0.85; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 300;
+    border: 0.5px solid var(--border);
+    opacity: 0;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+
+  .toast.show { opacity: 1; }
+
+  /* Hidden inputs */
+  #file-input-photo, #file-input-video { display: none; }
+
+  /* Lightbox */
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 400;
+  }
+
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px; }
+  .lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-logo">
+    <svg viewBox="0 0 36 36" fill="none">
+      <circle cx="18" cy="14" r="6" fill="#04342C"/>
+      <path d="M6 30c0-6.627 5.373-12 12-12s12 5.373 12 12" stroke="#04342C" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="28" cy="10" r="3" fill="#04342C" opacity="0.5"/>
+      <circle cx="8" cy="10" r="3" fill="#04342C" opacity="0.5"/>
+    </svg>
+  </div>
+  <h1 class="login-title">Rememba</h1>
+  <p class="login-sub">El diario de tu familia. Fotos, audios, notas y videos — todos en un solo lugar.</p>
+  <button class="btn-google" id="btn-signin">
+    <svg viewBox="0 0 24 24">
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+    </svg>
+    Continuar con Google
+  </button>
+  <p class="login-disclaimer">Tus archivos se guardan en tu propio Google Drive. Nadie más tiene acceso.</p>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+  <div class="header">
+    <div class="header-top">
+      <span class="app-wordmark">Rememba</span>
+      <button class="avatar-btn" id="avatar-btn" onclick="handleSignOut()">
+        <span id="avatar-initials">AS</span>
+      </button>
+    </div>
+    <div class="month-year" id="month-year">Marzo 2026</div>
+    <div class="entry-count" id="entry-count">Cargando...</div>
+    <div class="day-strip" id="day-strip"></div>
+  </div>
+
+  <div class="timeline" id="timeline"></div>
+
+  <div class="fab-bar">
+    <button class="fab-btn" onclick="openSheet('audio')">
+      <span class="fab-icon">🎙</span>
+      <span>Audio</span>
+    </button>
+    <button class="fab-btn" onclick="openSheet('photo')">
+      <span class="fab-icon">📷</span>
+      <span>Foto</span>
+    </button>
+    <button class="fab-btn fab-main" onclick="openSheet('main')">
+      <span class="fab-icon">＋</span>
+      <span style="font-size:10px">Nuevo</span>
+    </button>
+    <button class="fab-btn" onclick="openSheet('video')">
+      <span class="fab-icon">🎬</span>
+      <span>Video</span>
+    </button>
+    <button class="fab-btn" onclick="openSheet('note')">
+      <span class="fab-icon">✏️</span>
+      <span>Nota</span>
+    </button>
+  </div>
+</div>
+
+<!-- OVERLAY / SHEETS -->
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="sheet" id="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div id="sheet-content"></div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<!-- HIDDEN INPUTS -->
+<input type="file" id="file-input-photo" accept="image/*" multiple>
+<input type="file" id="file-input-video" accept="video/*">
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ──
+const CLIENT_ID = '475374822010-11q1sf3m4sf817bhhcgq1ss9mbmloprf.apps.googleusercontent.com';
+const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
+const REMEMBA_FOLDER = 'Rememba';
+
+// ── STATE ──
+let tokenClient = null;
+let accessToken = null;
+let currentUser = null;
+let entries = [];
+let selectedDay = new Date().getDate();
+let selectedMonth = new Date().getMonth();
+let selectedYear = new Date().getFullYear();
+let driveRootId = null;
+let sharedFolderId = null;
+let personalFolderId = null;
+let selectedPrivacy = 'familia';
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let recordingInterval = null;
+let recordingSeconds = 0;
+
+const DAYS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// ── INIT ──
+window.onload = () => {
+  const saved = localStorage.getItem('rememba_token');
+  const savedUser = localStorage.getItem('rememba_user');
+  if (saved && savedUser) {
+    accessToken = saved;
+    currentUser = JSON.parse(savedUser);
+    showApp();
+  }
+  initGoogleAuth();
+};
+
+function initGoogleAuth() {
+  const script = document.createElement('script');
+  script.src = 'https://accounts.google.com/gsi/client';
+  script.onload = () => {
+    tokenClient = google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: handleTokenResponse,
+    });
+  };
+  document.head.appendChild(script);
+}
+
+document.getElementById('btn-signin').onclick = () => {
+  if (tokenClient) tokenClient.requestAccessToken();
+};
+
+async function handleTokenResponse(response) {
+  if (response.error) { showToast('Error al iniciar sesión'); return; }
+  accessToken = response.access_token;
+  await fetchUserInfo();
+  localStorage.setItem('rememba_token', accessToken);
+  localStorage.setItem('rememba_user', JSON.stringify(currentUser));
+  showApp();
+}
+
+async function fetchUserInfo() {
+  const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  currentUser = await r.json();
+}
+
+function handleSignOut() {
+  if (!confirm('¿Cerrar sesión?')) return;
+  localStorage.removeItem('rememba_token');
+  localStorage.removeItem('rememba_user');
+  accessToken = null;
+  currentUser = null;
+  entries = [];
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ── SHOW APP ──
+async function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+
+  // Set avatar
+  const initials = currentUser?.name
+    ? currentUser.name.split(' ').map(n => n[0]).slice(0,2).join('').toUpperCase()
+    : 'AS';
+
+  const avatarEl = document.getElementById('avatar-btn');
+  if (currentUser?.picture) {
+    avatarEl.innerHTML = `<img src="${currentUser.picture}" alt="${initials}">`;
+  } else {
+    document.getElementById('avatar-initials').textContent = initials;
+  }
+
+  renderHeader();
+  renderDayStrip();
+  await initDriveFolders();
+  await loadEntries();
+  renderTimeline();
+}
+
+// ── DRIVE FOLDERS ──
+async function initDriveFolders() {
+  driveRootId = await getOrCreateFolder(REMEMBA_FOLDER, 'root');
+  sharedFolderId = await getOrCreateFolder('compartido', driveRootId);
+  personalFolderId = await getOrCreateFolder('personal', driveRootId);
+}
+
+async function getOrCreateFolder(name, parentId) {
+  const q = `name='${name}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`;
+  const r = await driveApi(`files?q=${encodeURIComponent(q)}&fields=files(id,name)`);
+  if (r.files && r.files.length > 0) return r.files[0].id;
+
+  const body = {
+    name,
+    mimeType: 'application/vnd.google-apps.folder',
+    parents: [parentId]
+  };
+
+  const res = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body)
+  });
+
+  const f = await res.json();
+  return f.id;
+}
+
+async function driveApi(path, options = {}) {
+  const r = await fetch(`https://www.googleapis.com/drive/v3/${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      ...(options.headers || {})
+    }
+  });
+  if (!r.ok) {
+    const err = await r.json();
+    console.error('Drive API error:', err);
+    return {};
+  }
+  return r.json();
+}
+
+// ── LOAD ENTRIES from Drive ──
+async function loadEntries() {
+  entries = [];
+  const folderId = sharedFolderId;
+  if (!folderId) return;
+
+  // Load metadata JSON files
+  const q = `name contains 'entry_' and '${folderId}' in parents and trashed=false and mimeType='application/json'`;
+  const r = await driveApi(`files?q=${encodeURIComponent(q)}&fields=files(id,name,createdTime)&orderBy=createdTime desc&pageSize=100`);
+
+  if (!r.files) return;
+
+  for (const f of r.files) {
+    try {
+      const content = await fetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`, {
+        headers: { Authorization: `Bearer ${accessToken}` }
+      });
+      const entry = await content.json();
+      entries.push(entry);
+    } catch(e) { console.error('Error loading entry:', e); }
+  }
+
+  entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+}
+
+// ── RENDER HEADER ──
+function renderHeader() {
+  document.getElementById('month-year').textContent = `${MONTHS_ES[selectedMonth]} ${selectedYear}`;
+  const dayEntries = entries.filter(e => {
+    const d = new Date(e.timestamp);
+    return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+  });
+  document.getElementById('entry-count').textContent =
+    dayEntries.length === 0 ? 'Sin entradas este mes' :
+    `${dayEntries.length} entrada${dayEntries.length !== 1 ? 's' : ''} este mes`;
+}
+
+// ── RENDER DAY STRIP ──
+function renderDayStrip() {
+  const strip = document.getElementById('day-strip');
+  strip.innerHTML = '';
+  const today = new Date();
+  const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    if (d > today.getDate() && selectedMonth === today.getMonth() && selectedYear === today.getFullYear()) break;
+
+    const date = new Date(selectedYear, selectedMonth, d);
+    const hasEntry = entries.some(e => {
+      const ed = new Date(e.timestamp);
+      return ed.getDate() === d && ed.getMonth() === selectedMonth && ed.getFullYear() === selectedYear;
+    });
+
+    const pill = document.createElement('button');
+    pill.className = 'day-pill' + (d === selectedDay ? ' active' : '');
+    pill.innerHTML = `
+      <span class="dp-name">${DAYS_ES[date.getDay()]}</span>
+      <span class="dp-num">${d}</span>
+      ${hasEntry ? '<span class="dp-dot"></span>' : '<span class="dp-dot-empty"></span>'}
+    `;
+    pill.onclick = () => {
+      selectedDay = d;
+      document.querySelectorAll('.day-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      renderTimeline();
+    };
+    strip.appendChild(pill);
+  }
+
+  // scroll to selected
+  setTimeout(() => {
+    const active = strip.querySelector('.day-pill.active');
+    if (active) active.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+  }, 100);
+}
+
+// ── RENDER TIMELINE ──
+function renderTimeline() {
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = '';
+
+  const dayEntries = entries.filter(e => {
+    const d = new Date(e.timestamp);
+    return d.getDate() === selectedDay && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+  });
+
+  // On This Day
+  const lastYear = entries.filter(e => {
+    const d = new Date(e.timestamp);
+    return d.getDate() === selectedDay && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear - 1;
+  });
+
+  if (lastYear.length > 0) {
+    const otd = document.createElement('div');
+    otd.className = 'otd-card';
+    otd.innerHTML = `
+      <span class="otd-icon">✦</span>
+      <div>
+        <div class="otd-label">En este día · hace 1 año</div>
+        <div class="otd-text">${lastYear[0].text || 'Tenías una entrada guardada este día.'}</div>
+      </div>
+    `;
+    tl.appendChild(otd);
+  }
+
+  // Day label
+  const date = new Date(selectedYear, selectedMonth, selectedDay);
+  const isToday = date.toDateString() === new Date().toDateString();
+  const label = document.createElement('div');
+  label.className = 'day-section-label';
+  label.textContent = isToday
+    ? `Hoy · ${selectedDay} de ${MONTHS_ES[selectedMonth].toLowerCase()}`
+    : `${selectedDay} de ${MONTHS_ES[selectedMonth].toLowerCase()}`;
+  tl.appendChild(label);
+
+  if (dayEntries.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-day';
+    empty.innerHTML = `
+      <span class="empty-day-icon">📭</span>
+      <span class="empty-day-text">Sin entradas este día.<br>Toca + para agregar algo.</span>
+    `;
+    tl.appendChild(empty);
+    return;
+  }
+
+  dayEntries.forEach(entry => tl.appendChild(buildEntryCard(entry)));
+  renderHeader();
+}
+
+function buildEntryCard(entry) {
+  const card = document.createElement('div');
+  card.className = 'entry-card';
+
+  const typeMap = { note: '✏️', photo: '📷', audio: '🎙', video: '🎬' };
+  const classMap = { note: 'ei-note', photo: 'ei-photo', audio: 'ei-audio', video: 'ei-video' };
+
+  const time = new Date(entry.timestamp).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+  const authorName = entry.authorName || currentUser?.given_name || 'Tú';
+  const isPrivate = entry.privacy === 'privado';
+
+  let bodyHTML = '';
+
+  if (entry.type === 'note' && entry.text) {
+    bodyHTML += `<p class="entry-text">${escapeHTML(entry.text)}</p>`;
+  }
+
+  if (entry.type === 'photo' && entry.fileIds && entry.fileIds.length > 0) {
+    const count = entry.fileIds.length;
+    const gridClass = count === 1 ? 'g1' : count === 2 ? 'g2' : 'g3';
+    bodyHTML += `<div class="photo-grid ${gridClass}">`;
+    entry.fileIds.forEach((fid, i) => {
+      const isWide = count === 3 && i === 0;
+      bodyHTML += `<img class="photo-thumb${isWide ? ' wide' : ''}" 
+        src="https://www.googleapis.com/drive/v3/files/${fid}?alt=media&access_token=${accessToken}"
+        loading="lazy"
+        onclick="openLightbox('https://www.googleapis.com/drive/v3/files/${fid}?alt=media&access_token=${accessToken}')"
+        alt="foto">`;
+    });
+    bodyHTML += `</div>`;
+    if (entry.text) bodyHTML += `<p class="entry-text" style="margin-top:8px">${escapeHTML(entry.text)}</p>`;
+  }
+
+  if (entry.type === 'audio' && entry.fileId) {
+    const bars = Array.from({length: 18}, (_, i) => {
+      const h = [6,10,14,18,12,8,16,20,10,14,8,18,12,6,16,10,14,8][i];
+      return `<div class="wave-bar" style="height:${h}px"></div>`;
+    }).join('');
+
+    bodyHTML += `
+      <div class="audio-player">
+        <button class="play-btn" onclick="playAudio('${entry.fileId}', this)">
+          <svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg>
+        </button>
+        <div class="audio-waves">${bars}</div>
+        <span class="audio-dur">${entry.duration || '0:00'}</span>
+      </div>
+    `;
+    if (entry.text) bodyHTML += `<p class="entry-text" style="margin-top:8px">${escapeHTML(entry.text)}</p>`;
+  }
+
+  if (entry.type === 'video' && entry.fileId) {
+    bodyHTML += `
+      <video controls style="width:100%;border-radius:10px;max-height:220px;background:#000"
+        src="https://www.googleapis.com/drive/v3/files/${entry.fileId}?alt=media&access_token=${accessToken}">
+      </video>
+    `;
+    if (entry.text) bodyHTML += `<p class="entry-text" style="margin-top:8px">${escapeHTML(entry.text)}</p>`;
+  }
+
+  if (entry.tags && entry.tags.length > 0) {
+    bodyHTML += `<div class="tag-row">${entry.tags.map(t => `<span class="tag tag-person">${t}</span>`).join('')}</div>`;
+  }
+
+  card.innerHTML = `
+    <div class="entry-header">
+      <div class="entry-icon ${classMap[entry.type] || 'ei-note'}">${typeMap[entry.type] || '📝'}</div>
+      <div class="entry-meta">
+        <div class="entry-author">${authorName}</div>
+        <div class="entry-time">${time}${entry.weather ? ` · ${entry.weather}` : ''}</div>
+      </div>
+      <span class="privacy-badge ${isPrivate ? 'pb-private' : 'pb-family'}">${isPrivate ? 'solo yo' : 'familia'}</span>
+    </div>
+    <div class="entry-body">${bodyHTML}</div>
+  `;
+
+  return card;
+}
+
+// ── SHEETS ──
+function openSheet(type) {
+  const overlay = document.getElementById('overlay');
+  const content = document.getElementById('sheet-content');
+  overlay.classList.add('open');
+
+  if (type === 'main') {
+    content.innerHTML = `
+      <div class="sheet-title">Agregar al día de hoy</div>
+      <div class="sheet-options">
+        <button class="sheet-opt" onclick="closeSheet(); setTimeout(() => openSheet('note'), 100)">
+          <div class="so-icon ei-note">✏️</div>
+          <div><div class="so-label">Escribir nota</div><div class="so-sub">Texto libre con etiquetas</div></div>
+        </button>
+        <button class="sheet-opt" onclick="closeSheet(); setTimeout(() => openSheet('photo'), 100)">
+          <div class="so-icon ei-photo">📷</div>
+          <div><div class="so-label">Subir fotos</div><div class="so-sub">Desde tu cámara o galería</div></div>
+        </button>
+        <button class="sheet-opt" onclick="closeSheet(); setTimeout(() => openSheet('audio'), 100)">
+          <div class="so-icon ei-audio">🎙</div>
+          <div><div class="so-label">Grabar audio</div><div class="so-sub">Nota de voz — se guarda en Drive</div></div>
+        </button>
+        <button class="sheet-opt" onclick="closeSheet(); setTimeout(() => openSheet('video'), 100)">
+          <div class="so-icon ei-video">🎬</div>
+          <div><div class="so-label">Subir video</div><div class="so-sub">Se guarda en tu Google Drive</div></div>
+        </button>
+      </div>
+    `;
+  }
+
+  if (type === 'note') {
+    content.innerHTML = `
+      <div class="sheet-title">Nueva nota</div>
+      <textarea class="note-area" id="note-text" placeholder="¿Qué pasó hoy?"></textarea>
+      <div class="privacy-select">
+        <button class="priv-btn selected" id="priv-familia" onclick="selectPrivacy('familia')">🌐 Familia</button>
+        <button class="priv-btn" id="priv-privado" onclick="selectPrivacy('privado')">🔒 Solo yo</button>
+      </div>
+      <button class="sheet-submit" id="note-submit" onclick="saveNote()">Guardar nota</button>
+    `;
+    selectedPrivacy = 'familia';
+    setTimeout(() => document.getElementById('note-text').focus(), 100);
+  }
+
+  if (type === 'photo') {
+    document.getElementById('file-input-photo').click();
+    closeSheet();
+    document.getElementById('file-input-photo').onchange = handlePhotoSelected;
+    return;
+  }
+
+  if (type === 'video') {
+    document.getElementById('file-input-video').click();
+    closeSheet();
+    document.getElementById('file-input-video').onchange = handleVideoSelected;
+    return;
+  }
+
+  if (type === 'audio') {
+    content.innerHTML = `
+      <div class="sheet-title">Grabar audio</div>
+      <div id="rec-status" style="text-align:center;padding:24px 0">
+        <div style="font-size:48px;margin-bottom:12px">🎙</div>
+        <div style="color:var(--text2);font-size:14px">Toca para empezar a grabar</div>
+      </div>
+      <button class="sheet-submit" id="rec-btn" onclick="toggleRecording()">Empezar a grabar</button>
+    `;
+    selectedPrivacy = 'familia';
+  }
+}
+
+function selectPrivacy(val) {
+  selectedPrivacy = val;
+  document.getElementById('priv-familia').classList.toggle('selected', val === 'familia');
+  document.getElementById('priv-privado').classList.toggle('selected', val === 'privado');
+}
+
+function closeSheet() {
+  document.getElementById('overlay').classList.remove('open');
+  if (isRecording) stopRecording();
+}
+
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closeSheet();
+}
+
+// ── SAVE NOTE ──
+async function saveNote() {
+  const text = document.getElementById('note-text').value.trim();
+  if (!text) return;
+
+  const btn = document.getElementById('note-submit');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  const entry = buildEntry('note', { text });
+  await saveEntryToMeta(entry);
+
+  closeSheet();
+  showToast('Nota guardada ✓');
+}
+
+// ── HANDLE PHOTO ──
+async function handlePhotoSelected(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+
+  showUploadProgress(`Subiendo ${files.length} foto${files.length > 1 ? 's' : ''}...`);
+
+  const fileIds = [];
+  for (const file of files) {
+    const id = await uploadFileToDrive(file, sharedFolderId);
+    if (id) fileIds.push(id);
+  }
+
+  if (fileIds.length > 0) {
+    const entry = buildEntry('photo', { fileIds });
+    await saveEntryToMeta(entry);
+    showToast(`${fileIds.length} foto${fileIds.length > 1 ? 's' : ''} guardada${fileIds.length > 1 ? 's' : ''} ✓`);
+  }
+
+  removeUploadProgress();
+  e.target.value = '';
+}
+
+// ── HANDLE VIDEO ──
+async function handleVideoSelected(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  showUploadProgress('Subiendo video...');
+
+  const fileId = await uploadFileToDrive(file, sharedFolderId);
+  if (fileId) {
+    const entry = buildEntry('video', { fileId });
+    await saveEntryToMeta(entry);
+    showToast('Video guardado ✓');
+  }
+
+  removeUploadProgress();
+  e.target.value = '';
+}
+
+// ── RECORDING ──
+async function toggleRecording() {
+  if (!isRecording) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      audioChunks = [];
+      recordingSeconds = 0;
+
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstop = handleRecordingStop;
+      mediaRecorder.start();
+      isRecording = true;
+
+      document.getElementById('rec-btn').textContent = 'Detener grabación';
+      document.getElementById('rec-btn').style.background = '#E24B4A';
+
+      recordingInterval = setInterval(() => {
+        recordingSeconds++;
+        const m = Math.floor(recordingSeconds / 60);
+        const s = recordingSeconds % 60;
+        const time = `${m}:${s.toString().padStart(2,'0')}`;
+        document.getElementById('rec-status').innerHTML = `
+          <div style="font-size:48px;margin-bottom:12px">🔴</div>
+          <div style="color:var(--green);font-size:22px;font-weight:700;font-variant-numeric:tabular-nums">${time}</div>
+          <div style="color:var(--text2);font-size:13px;margin-top:6px">Grabando...</div>
+        `;
+      }, 1000);
+    } catch(e) {
+      showToast('Sin acceso al micrófono');
+    }
+  } else {
+    stopRecording();
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  }
+  clearInterval(recordingInterval);
+  isRecording = false;
+}
+
+async function handleRecordingStop() {
+  const blob = new Blob(audioChunks, { type: 'audio/webm' });
+  const m = Math.floor(recordingSeconds / 60);
+  const s = recordingSeconds % 60;
+  const duration = `${m}:${s.toString().padStart(2,'0')}`;
+
+  closeSheet();
+  showUploadProgress('Guardando audio...');
+
+  const file = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
+  const fileId = await uploadFileToDrive(file, sharedFolderId);
+
+  if (fileId) {
+    const entry = buildEntry('audio', { fileId, duration });
+    await saveEntryToMeta(entry);
+    showToast('Audio guardado ✓');
+  }
+
+  removeUploadProgress();
+}
+
+// ── UPLOAD FILE TO DRIVE ──
+async function uploadFileToDrive(file, parentId) {
+  const metadata = { name: file.name, parents: [parentId] };
+  const form = new FormData();
+  form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  form.append('file', file);
+
+  const r = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: form
+  });
+
+  if (!r.ok) return null;
+  const data = await r.json();
+  return data.id;
+}
+
+// ── BUILD + SAVE ENTRY ──
+function buildEntry(type, extras = {}) {
+  return {
+    id: `entry_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
+    type,
+    timestamp: new Date().toISOString(),
+    authorId: currentUser?.id || 'anon',
+    authorName: currentUser?.given_name || 'Anwar',
+    privacy: selectedPrivacy,
+    weather: null,
+    tags: [],
+    ...extras
+  };
+}
+
+async function saveEntryToMeta(entry) {
+  const json = JSON.stringify(entry);
+  const file = new File([json], `${entry.id}.json`, { type: 'application/json' });
+  await uploadFileToDrive(file, sharedFolderId);
+  entries.unshift(entry);
+  renderDayStrip();
+  renderTimeline();
+}
+
+// ── AUDIO PLAYBACK ──
+function playAudio(fileId, btn) {
+  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&access_token=${accessToken}`;
+  const audio = new Audio(url);
+  audio.play();
+  btn.innerHTML = `<svg viewBox="0 0 10 12"><rect x="0" y="0" width="3" height="12"/><rect x="6" y="0" width="3" height="12"/></svg>`;
+  audio.onended = () => {
+    btn.innerHTML = `<svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg>`;
+  };
+}
+
+// ── LIGHTBOX ──
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+// ── UI HELPERS ──
+function showUploadProgress(label) {
+  const tl = document.getElementById('timeline');
+  const el = document.createElement('div');
+  el.className = 'upload-progress';
+  el.id = 'upload-progress';
+  el.innerHTML = `<div class="upload-spinner"></div><span class="upload-label">${label}</span>`;
+  tl.prepend(el);
+}
+
+function removeUploadProgress() {
+  document.getElementById('upload-progress')?.remove();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function escapeHTML(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
