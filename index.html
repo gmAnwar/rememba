@@ -172,6 +172,10 @@
   }
 
   /* Day strip — horizontal */
+  .day-strip-wrapper {
+    overflow: hidden;
+    width: 100%;
+  }
   .day-strip {
     display: flex;
     gap: 4px;
@@ -186,9 +190,9 @@
   .day-strip::-webkit-scrollbar { display: none; }
   .day-pill {
     scroll-snap-align: start;
-    min-width: 52px !important;
-    max-width: 52px !important;
-    flex-shrink: 0 !important;
+    min-width: 48px;
+    max-width: 48px;
+    flex-shrink: 0;
   }
 
   /* Day strip — vertical (modo izquierda) */
@@ -1039,6 +1043,65 @@
   }
   .options-popup-backdrop.open { display: block; }
 
+
+  /* ── INLINE DATE PICKER ── */
+  .date-picker-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .date-picker-overlay.open { display: flex; }
+  .date-picker-card {
+    background: #1c1c1e;
+    border-radius: 18px;
+    padding: 20px;
+    width: 300px;
+    border: 0.5px solid rgba(255,255,255,0.1);
+  }
+  .date-picker-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+    text-align: center;
+  }
+  .date-picker-inputs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .date-picker-inputs select {
+    flex: 1;
+    background: rgba(255,255,255,0.06);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 14px;
+    padding: 10px 6px;
+    text-align: center;
+    cursor: pointer;
+    outline: none;
+  }
+  .date-picker-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .date-picker-actions button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 0.5px solid var(--border);
+  }
+  .dp-cancel { background: transparent; color: var(--text2); }
+  .dp-confirm { background: var(--text); color: #0f0f0f; border-color: transparent; }
+
 </style>
 </head>
 <body>
@@ -1081,7 +1144,7 @@
     </div>
     <div class="month-year" id="month-year">Marzo 2026</div>
     <div class="entry-count" id="entry-count">Cargando...</div>
-    <div class="day-strip" id="day-strip"></div>
+    <div class="day-strip-wrapper"><div class="day-strip" id="day-strip"></div></div>
   </div>
 
   <div class="app-body" id="app-body">
@@ -1136,10 +1199,27 @@
   <button class="side-panel-apply" onclick="applyDateFromWheel()">Ver este día</button>
 </div>
 
+<!-- DATE PICKER -->
+<div class="date-picker-overlay" id="date-picker-overlay" onclick="if(event.target===this)closeDatePicker()">
+  <div class="date-picker-card">
+    <div class="date-picker-title">Cambiar fecha</div>
+    <div class="date-picker-inputs">
+      <select id="dp-day"></select>
+      <select id="dp-month"></select>
+      <select id="dp-year"></select>
+    </div>
+    <div class="date-picker-actions">
+      <button class="dp-cancel" onclick="closeDatePicker()">Cancelar</button>
+      <button class="dp-confirm" onclick="confirmDateChange()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- OPTIONS POPUP -->
 <div class="options-popup-backdrop" id="options-backdrop" onclick="closeOptionsPopup()"></div>
 <div class="options-popup" id="options-popup">
   <button class="options-popup-opt" id="opt-edit" onclick="optEdit()">✏️ Editar nota</button>
+  <button class="options-popup-opt" id="opt-date" onclick="optChangeDate()">📅 Cambiar fecha</button>
   <button class="options-popup-opt danger" id="opt-delete" onclick="optDelete()">🗑️ Eliminar</button>
 </div>
 
@@ -1166,7 +1246,8 @@
 
 <!-- HIDDEN INPUTS -->
 <input type="file" id="file-input-photo" accept="image/*" multiple>
-<input type="file" id="file-input-video" accept="video/*">
+<input type="file" id="file-input-video" accept="video/*" capture="environment">
+<input type="file" id="file-input-video-gallery" accept="video/*">
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -1638,9 +1719,24 @@ function openSheet(type) {
   }
 
   if (type === 'video') {
-    document.getElementById('file-input-video').click();
-    closeSheet();
-    document.getElementById('file-input-video').onchange = handleVideoSelected;
+    const content2 = document.getElementById('sheet-content');
+    content2.innerHTML = `
+      <div class="sheet-title">Subir video</div>
+      <div class="sheet-options">
+        <button class="sheet-opt" onclick="pickVideo('gallery')">
+          <div class="so-icon ei-photo">🎬</div>
+          <div><div class="so-label">Desde galería</div><div class="so-sub">Videos guardados en tu cel</div></div>
+        </button>
+        <button class="sheet-opt" onclick="pickVideo('camera')">
+          <div class="so-icon ei-video">📹</div>
+          <div><div class="so-label">Grabar ahora</div><div class="so-sub">Usa la cámara de tu cel</div></div>
+        </button>
+        <button class="sheet-opt" onclick="closeSheet(); openGooglePhotos()">
+          <div class="so-icon" style="background:rgba(234,67,53,0.12)">🖼️</div>
+          <div><div class="so-label">Google Fotos</div><div class="so-sub">Abre Google Fotos para elegir</div></div>
+        </button>
+      </div>
+    `;
     return;
   }
 
@@ -1721,6 +1817,70 @@ function optEdit() {
   const id = optionsPopupEntryId;
   closeOptionsPopup();
   editNote(id);
+}
+
+function optChangeDate() {
+  const id = optionsPopupEntryId;
+  closeOptionsPopup();
+  openDatePicker(id);
+}
+
+function openDatePicker(entryId) {
+  const entry = entries.find(e => e.id === entryId);
+  if (!entry) return;
+
+  const d = new Date(entry.timestamp);
+  const today = new Date();
+  const currentYear = today.getFullYear();
+
+  // Poblar selects
+  const dayEl = document.getElementById('dp-day');
+  const monthEl = document.getElementById('dp-month');
+  const yearEl = document.getElementById('dp-year');
+
+  dayEl.innerHTML = Array.from({length:31},(_,i)=>`<option value="${i+1}" ${i+1===d.getDate()?'selected':''}>${String(i+1).padStart(2,'0')}</option>`).join('');
+  monthEl.innerHTML = MONTHS_ES.map((m,i)=>`<option value="${i}" ${i===d.getMonth()?'selected':''}>${m}</option>`).join('');
+  yearEl.innerHTML = Array.from({length:11},(_,i)=>`<option value="${currentYear-i}" ${currentYear-i===d.getFullYear()?'selected':''}>${currentYear-i}</option>`).join('');
+
+  document.getElementById('date-picker-overlay').dataset.entryId = entryId;
+  document.getElementById('date-picker-overlay').classList.add('open');
+}
+
+function closeDatePicker() {
+  document.getElementById('date-picker-overlay').classList.remove('open');
+}
+
+async function confirmDateChange() {
+  const entryId = document.getElementById('date-picker-overlay').dataset.entryId;
+  const idx = entries.findIndex(e => e.id === entryId);
+  if (idx === -1) return;
+
+  const day = parseInt(document.getElementById('dp-day').value);
+  const month = parseInt(document.getElementById('dp-month').value);
+  const year = parseInt(document.getElementById('dp-year').value);
+
+  const oldDate = new Date(entries[idx].timestamp);
+  const newDate = new Date(year, month, day, oldDate.getHours(), oldDate.getMinutes(), oldDate.getSeconds());
+  entries[idx].timestamp = newDate.toISOString();
+
+  closeDatePicker();
+  showUploadProgress('Guardando cambio de fecha...');
+
+  const q = "name='" + entryId + ".json' and '" + sharedFolderId + "' in parents and trashed=false";
+  const r = await driveApi('files?q=' + encodeURIComponent(q) + '&fields=files(id)');
+  if (r.files && r.files.length > 0) {
+    const fid = r.files[0].id;
+    await fetch('https://www.googleapis.com/upload/drive/v3/files/' + fid + '?uploadType=media', {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(entries[idx])
+    });
+  }
+
+  removeUploadProgress();
+  renderDayStrip();
+  renderTimeline();
+  showToast('Fecha actualizada ✓');
 }
 
 async function optDelete() {
@@ -1848,6 +2008,18 @@ async function saveEditedNote(entryId) {
   closeSheet();
   renderTimeline();
   showToast('Nota actualizada ✓');
+}
+
+// ── PICK VIDEO ──
+function pickVideo(source) {
+  closeSheet();
+  if (source === 'camera') {
+    document.getElementById('file-input-video').click();
+    document.getElementById('file-input-video').onchange = handleVideoSelected;
+  } else {
+    document.getElementById('file-input-video-gallery').click();
+    document.getElementById('file-input-video-gallery').onchange = handleVideoSelected;
+  }
 }
 
 // ── GOOGLE PHOTOS ──
