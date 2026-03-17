@@ -179,9 +179,14 @@
     scrollbar-width: none;
     border-bottom: 0.5px solid var(--border);
     -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
   }
   .day-strip::-webkit-scrollbar { display: none; }
+  .day-strip .day-pill {
+    scroll-snap-align: start;
+    min-width: 52px;
+    max-width: 52px;
+  }
 
   /* Day strip — vertical (modo izquierda) */
   .day-strip-vertical {
@@ -196,10 +201,16 @@
     border-right: 0.5px solid var(--border);
     position: sticky;
     top: 180px;
-    max-height: calc(100vh - 200px);
+    height: 396px;
     align-self: flex-start;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
   }
   .day-strip-vertical::-webkit-scrollbar { display: none; }
+  .day-strip-vertical .day-pill {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
 
   /* Layout con columna izquierda */
   .app-body {
