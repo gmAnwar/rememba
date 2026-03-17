@@ -119,6 +119,7 @@
     top: 0;
     background: var(--bg);
     z-index: 100;
+    overflow: hidden;
   }
 
   .header-top {
@@ -174,18 +175,20 @@
   .day-strip {
     display: flex;
     gap: 4px;
-    overflow-x: auto;
+    overflow-x: scroll;
     padding: 0 0 14px;
     scrollbar-width: none;
     border-bottom: 0.5px solid var(--border);
     -webkit-overflow-scrolling: touch;
     scroll-snap-type: x mandatory;
+    width: 100%;
   }
   .day-strip::-webkit-scrollbar { display: none; }
-  .day-strip .day-pill {
+  .day-pill {
     scroll-snap-align: start;
-    min-width: 52px;
-    max-width: 52px;
+    min-width: 52px !important;
+    max-width: 52px !important;
+    flex-shrink: 0 !important;
   }
 
   /* Day strip — vertical (modo izquierda) */
@@ -484,17 +487,24 @@
   /* Upload progress */
   .upload-progress {
     background: var(--surface);
-    border: 0.5px solid var(--border);
+    border: 0.5px solid rgba(159,225,203,0.3);
     border-radius: var(--radius);
-    padding: 14px;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 4px;
+  }
+
+  .upload-progress-top {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 
   .upload-spinner {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     border: 2px solid var(--border);
     border-top-color: var(--green);
     border-radius: 50%;
@@ -504,7 +514,28 @@
 
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  .upload-label { font-size: 13px; color: var(--text2); }
+  .upload-label { font-size: 13px; color: var(--text); font-weight: 500; }
+
+  .upload-bar-track {
+    width: 100%;
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .upload-bar-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 2px;
+    animation: uploadPulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes uploadPulse {
+    0% { width: 15%; }
+    50% { width: 85%; }
+    100% { width: 15%; }
+  }
 
   /* FAB bar */
   .fab-bar {
@@ -1482,6 +1513,10 @@ function openSheet(type) {
           <div class="so-icon ei-photo">📷</div>
           <div><div class="so-label">Subir fotos</div><div class="so-sub">Desde tu cámara o galería</div></div>
         </button>
+        <button class="sheet-opt" onclick="closeSheet(); openGooglePhotos()">
+          <div class="so-icon" style="background:rgba(234,67,53,0.12)">🖼️</div>
+          <div><div class="so-label">Google Fotos</div><div class="so-sub">Abre Google Fotos para elegir</div></div>
+        </button>
         <button class="sheet-opt" onclick="closeSheet(); setTimeout(() => openSheet('audio'), 100)">
           <div class="so-icon ei-audio">🎙</div>
           <div><div class="so-label">Grabar audio</div><div class="so-sub">Nota de voz — se guarda en Drive</div></div>
@@ -1665,6 +1700,12 @@ async function saveEditedNote(entryId) {
   closeSheet();
   renderTimeline();
   showToast('Nota actualizada ✓');
+}
+
+// ── GOOGLE PHOTOS ──
+function openGooglePhotos() {
+  window.open('https://photos.google.com', '_blank');
+  showToast('Descarga la foto y súbela con el botón 📷');
 }
 
 // ── HANDLE PHOTO ──
@@ -1852,8 +1893,15 @@ function showUploadProgress(label) {
   const el = document.createElement('div');
   el.className = 'upload-progress';
   el.id = 'upload-progress';
-  el.innerHTML = `<div class="upload-spinner"></div><span class="upload-label">${label}</span>`;
-  tl.prepend(el);
+  el.innerHTML = `
+    <div class="upload-progress-top">
+      <div class="upload-spinner"></div>
+      <span class="upload-label">${label}</span>
+    </div>
+    <div class="upload-bar-track"><div class="upload-bar-fill"></div></div>
+  `;
+  tl.appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
 function removeUploadProgress() {
