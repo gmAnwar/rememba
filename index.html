@@ -901,7 +901,7 @@ async function showApp() {
     const btn = e.target.closest('.edit-note-btn');
     if (btn) {
       e.stopPropagation();
-      editNote(btn.getAttribute('data-id'));
+      editNote(btn.getAttribute('data-id'), parseInt(btn.getAttribute('data-idx')));
     }
   });
 }
@@ -1149,7 +1149,7 @@ function buildEntryCard(entry) {
   }
 
   const editBtn = entry.type === 'note'
-    ? `<button class="edit-note-btn" data-id="${entry.id}" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;font-size:13px;padding:5px 8px;color:var(--text2);margin-right:4px;flex-shrink:0">✏️</button>`
+    ? `<button class="edit-note-btn" data-id="${entry.id || ''}" data-idx="${entries.indexOf(entry)}" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;font-size:11px;font-weight:600;padding:5px 10px;color:var(--text2);margin-right:4px;flex-shrink:0;pointer-events:auto;letter-spacing:0.02em">Editar</button>`
     : '';
 
   card.innerHTML = `
@@ -1271,13 +1271,18 @@ async function saveNote() {
 }
 
 // ── EDIT NOTE ──
-function editNote(entryId) {
-  const entry = entries.find(e => e.id === entryId);
+function editNote(entryId, idx) {
+  let entry = entries.find(e => e.id === entryId);
+  // fallback: usar índice si el id no coincide
+  if (!entry && idx !== undefined && entries[idx]) {
+    entry = entries[idx];
+  }
   if (!entry) {
-    console.error('editNote: entry not found for id:', entryId, 'Available IDs:', entries.map(e => e.id));
     showToast('No se encontró la nota');
     return;
   }
+  // Asegurar que idx siempre esté definido para el template literal
+  const entryIdx = entries.indexOf(entry);
   const overlay = document.getElementById('overlay');
   const content = document.getElementById('sheet-content');
   overlay.classList.add('open');
@@ -1290,15 +1295,16 @@ function editNote(entryId) {
       <button class="priv-btn ${!isPrivate ? 'selected' : ''}" id="priv-familia" onclick="selectPrivacy('familia')">&#127758; Familia</button>
       <button class="priv-btn ${isPrivate ? 'selected' : ''}" id="priv-privado" onclick="selectPrivacy('privado')">&#128274; Solo yo</button>
     </div>
-    <button class="sheet-submit" onclick="saveEditedNote('${entryId}')">Guardar cambios</button>
+    <button class="sheet-submit" onclick="saveEditedNote('${entryId}', ${entryIdx})">Guardar cambios</button>
   `;
   setTimeout(() => document.getElementById('note-text').focus(), 100);
 }
 
-async function saveEditedNote(entryId) {
+async function saveEditedNote(entryId, fallbackIdx) {
   const text = document.getElementById('note-text').value.trim();
   if (!text) return;
-  const idx = entries.findIndex(e => e.id === entryId);
+  let idx = entries.findIndex(e => e.id === entryId);
+  if (idx === -1 && fallbackIdx !== undefined) idx = fallbackIdx;
   if (idx === -1) return;
   entries[idx].text = text;
   entries[idx].privacy = selectedPrivacy;
