@@ -1138,13 +1138,18 @@ function buildEntryCard(entry) {
     bodyHTML += `<div class="tag-row">${entry.tags.map(t => `<span class="tag tag-person">${t}</span>`).join('')}</div>`;
   }
 
+  const editBtn = entry.type === 'note'
+    ? `<button onclick="editNote('${entry.id}')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px;color:var(--text3);margin-right:4px">✏️</button>`
+    : '';
+
   card.innerHTML = `
     <div class="entry-header">
       <div class="entry-icon ${classMap[entry.type] || 'ei-note'}">${typeMap[entry.type] || '📝'}</div>
       <div class="entry-meta">
         <div class="entry-author">${authorName}</div>
-        <div class="entry-time">${time}${entry.weather ? ` · ${entry.weather}` : ''}</div>
+        <div class="entry-time">${time}${entry.weather ? ' · ' + entry.weather : ''}</div>
       </div>
+      ${editBtn}
       <span class="privacy-badge ${isPrivate ? 'pb-private' : 'pb-family'}">${isPrivate ? 'solo yo' : 'familia'}</span>
     </div>
     <div class="entry-body">${bodyHTML}</div>
@@ -1253,6 +1258,51 @@ async function saveNote() {
 
   closeSheet();
   showToast('Nota guardada ✓');
+}
+
+// ── EDIT NOTE ──
+function editNote(entryId) {
+  const entry = entries.find(e => e.id === entryId);
+  if (!entry) return;
+  const overlay = document.getElementById('overlay');
+  const content = document.getElementById('sheet-content');
+  overlay.classList.add('open');
+  const isPrivate = entry.privacy === 'privado';
+  selectedPrivacy = entry.privacy;
+  content.innerHTML = `
+    <div class="sheet-title">Editar nota</div>
+    <textarea class="note-area" id="note-text">${(entry.text || '').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+    <div class="privacy-select">
+      <button class="priv-btn ${!isPrivate ? 'selected' : ''}" id="priv-familia" onclick="selectPrivacy('familia')">&#127758; Familia</button>
+      <button class="priv-btn ${isPrivate ? 'selected' : ''}" id="priv-privado" onclick="selectPrivacy('privado')">&#128274; Solo yo</button>
+    </div>
+    <button class="sheet-submit" onclick="saveEditedNote('${entryId}')">Guardar cambios</button>
+  `;
+  setTimeout(() => document.getElementById('note-text').focus(), 100);
+}
+
+async function saveEditedNote(entryId) {
+  const text = document.getElementById('note-text').value.trim();
+  if (!text) return;
+  const idx = entries.findIndex(e => e.id === entryId);
+  if (idx === -1) return;
+  entries[idx].text = text;
+  entries[idx].privacy = selectedPrivacy;
+  showUploadProgress('Guardando cambios...');
+  const q = "name='" + entryId + ".json' and '" + sharedFolderId + "' in parents and trashed=false";
+  const r = await driveApi('files?q=' + encodeURIComponent(q) + '&fields=files(id)');
+  if (r.files && r.files.length > 0) {
+    const fid = r.files[0].id;
+    await fetch('https://www.googleapis.com/upload/drive/v3/files/' + fid + '?uploadType=media', {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(entries[idx])
+    });
+  }
+  removeUploadProgress();
+  closeSheet();
+  renderTimeline();
+  showToast('Nota actualizada ✓');
 }
 
 // ── HANDLE PHOTO ──
@@ -1382,10 +1432,15 @@ async function uploadFileToDrive(file, parentId) {
 
 // ── BUILD + SAVE ENTRY ──
 function buildEntry(type, extras = {}) {
+  // Usa el día seleccionado en el strip, no necesariamente hoy
+  const now = new Date();
+  const entryDate = new Date(selectedYear, selectedMonth, selectedDay,
+    now.getHours(), now.getMinutes(), now.getSeconds());
+
   return {
     id: `entry_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
     type,
-    timestamp: new Date().toISOString(),
+    timestamp: entryDate.toISOString(),
     authorId: currentUser?.id || 'anon',
     authorName: currentUser?.given_name || 'Anwar',
     privacy: selectedPrivacy,
