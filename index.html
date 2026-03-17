@@ -1227,7 +1227,11 @@
     </div>
     <div class="month-year" id="month-year">Marzo 2026</div>
     <div class="entry-count" id="entry-count">Cargando...</div>
-    <div class="day-strip-wrapper"><div class="day-strip" id="day-strip"></div></div>
+    <div style="position:relative">
+      <button id="strip-prev" onclick="scrollStrip(-1)" style="position:absolute;left:-2px;top:50%;transform:translateY(-60%);z-index:10;background:rgba(15,15,15,0.9);border:0.5px solid rgba(255,255,255,0.12);color:var(--text2);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;padding:0">‹</button>
+      <div class="day-strip-wrapper" style="padding:0 32px"><div class="day-strip" id="day-strip"></div></div>
+      <button id="strip-next" onclick="scrollStrip(1)" style="position:absolute;right:-2px;top:50%;transform:translateY(-60%);z-index:10;background:rgba(15,15,15,0.9);border:0.5px solid rgba(255,255,255,0.12);color:var(--text2);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;padding:0">›</button>
+    </div>
   </div>
 
   <div class="app-body" id="app-body">
@@ -2657,10 +2661,8 @@ function renderDayStripVertical() {
   strip.innerHTML = '';
   const today = new Date();
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
-  const maxDay = (selectedMonth === today.getMonth() && selectedYear === today.getFullYear())
-    ? today.getDate() : daysInMonth;
 
-  for (let d = 1; d <= maxDay; d++) {
+  for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(selectedYear, selectedMonth, d);
     const hasEntry = entries.some(e => {
       const ed = new Date(e.timestamp);
@@ -2693,6 +2695,11 @@ function renderDayStripVertical() {
 // Inicializar modo al arrancar
 function initNavMode() {
   applyNavMode();
+}
+
+function scrollStrip(dir) {
+  const strip = document.getElementById('day-strip');
+  strip.scrollBy({ left: dir * 56, behavior: 'smooth' });
 }
 
 function openSidePanel() {
