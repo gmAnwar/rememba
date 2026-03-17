@@ -231,10 +231,13 @@
     gap: 4px;
     overflow: hidden;
     width: 52px;
+    height: 462px; /* exactamente 7 pills de 66px = 462px */
+    flex-shrink: 0;
   }
   .day-strip-vertical .day-pill {
     min-width: 52px;
     max-width: 52px;
+    height: 62px;
     padding: 8px 6px;
     border-radius: 12px;
     gap: 4px;
@@ -2733,10 +2736,7 @@ function scrollStrip(dir) {
 let vStripOffset = 0;
 
 function getVItemH() {
-  const strip = document.getElementById('day-strip-vertical');
-  const pill = strip.querySelector('.day-pill');
-  if (!pill) return 66;
-  return pill.offsetHeight + 4; // height + gap
+  return 66; // height 62px + gap 4px
 }
 
 function scrollVerticalStrip(dir) {
