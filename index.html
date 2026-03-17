@@ -170,7 +170,7 @@
     margin-bottom: 14px;
   }
 
-  /* Day strip */
+  /* Day strip — horizontal */
   .day-strip {
     display: flex;
     gap: 4px;
@@ -179,9 +179,34 @@
     scrollbar-width: none;
     border-bottom: 0.5px solid var(--border);
   }
-
   .day-strip::-webkit-scrollbar { display: none; }
 
+  /* Day strip — vertical (modo izquierda) */
+  .day-strip-vertical {
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    width: 56px;
+    flex-shrink: 0;
+    padding-right: 8px;
+    border-right: 0.5px solid var(--border);
+  }
+  .day-strip-vertical::-webkit-scrollbar { display: none; }
+
+  /* Layout con columna izquierda */
+  .app-body {
+    display: flex;
+    gap: 0;
+  }
+
+  .app-body .timeline {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Shared pill styles */
   .day-pill {
     display: flex;
     flex-direction: column;
@@ -197,9 +222,16 @@
     background: transparent;
     color: var(--text);
   }
-
   .day-pill:hover { background: rgba(255,255,255,0.05); }
   .day-pill.active { background: var(--text); }
+
+  /* Vertical pill — más compacto */
+  .day-strip-vertical .day-pill {
+    min-width: unset;
+    width: 48px;
+    padding: 7px 4px;
+    border-radius: 10px;
+  }
 
   .dp-name {
     font-size: 10px;
@@ -208,7 +240,6 @@
     text-transform: uppercase;
     letter-spacing: 0.06em;
   }
-
   .day-pill.active .dp-name { color: rgba(15,15,15,0.45); }
 
   .dp-num {
@@ -216,7 +247,6 @@
     font-weight: 700;
     color: var(--text);
   }
-
   .day-pill.active .dp-num { color: #0f0f0f; }
 
   .dp-dot {
@@ -225,7 +255,6 @@
     border-radius: 50%;
     background: var(--green);
   }
-
   .day-pill.active .dp-dot { background: rgba(15,15,15,0.3); }
   .dp-dot-empty { width: 4px; height: 4px; }
 
@@ -856,6 +885,49 @@
 
   .side-panel-apply:active { opacity: 0.85; }
 
+
+  /* ── PRIVACY POPUP ── */
+  .privacy-popup {
+    position: fixed;
+    background: #2a2a2a;
+    border: 0.5px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 6px;
+    z-index: 500;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 130px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .privacy-popup.open { display: flex; }
+
+  .privacy-popup-opt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background 0.1s;
+  }
+  .privacy-popup-opt:hover { background: rgba(255,255,255,0.08); }
+  .privacy-popup-opt.active { color: var(--green); }
+  .privacy-popup-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 499;
+    display: none;
+  }
+  .privacy-popup-backdrop.open { display: block; }
+
 </style>
 </head>
 <body>
@@ -890,7 +962,7 @@
     <div class="header-top">
       <span class="app-wordmark">Rememba</span>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="nav-toggle-btn" id="nav-toggle-btn" onclick="toggleNavMode()" title="Cambiar vista de fechas">☰</button>
+        <button class="nav-toggle-btn" id="nav-toggle-btn" onclick="toggleNavMode()" title="Alternar vista de fechas" style="font-size:11px;font-weight:600;padding:5px 10px">↕ Arriba</button>
         <button class="avatar-btn" id="avatar-btn" onclick="handleSignOut()">
           <span id="avatar-initials">AS</span>
         </button>
@@ -901,7 +973,10 @@
     <div class="day-strip" id="day-strip"></div>
   </div>
 
-  <div class="timeline" id="timeline"></div>
+  <div class="app-body" id="app-body">
+    <div class="day-strip-vertical" id="day-strip-vertical"></div>
+    <div class="timeline" id="timeline"></div>
+  </div>
 
   <div class="fab-bar">
     <button class="fab-btn" onclick="openSheet('audio')">
@@ -948,6 +1023,13 @@
     </div>
   </div>
   <button class="side-panel-apply" onclick="applyDateFromWheel()">Ver este día</button>
+</div>
+
+<!-- PRIVACY POPUP -->
+<div class="privacy-popup-backdrop" id="privacy-backdrop" onclick="closePrivacyPopup()"></div>
+<div class="privacy-popup" id="privacy-popup">
+  <button class="privacy-popup-opt" id="pp-familia" onclick="setPrivacyFromPopup('familia')">🌐 Familia</button>
+  <button class="privacy-popup-opt" id="pp-privado" onclick="setPrivacyFromPopup('privado')">🔒 Solo yo</button>
 </div>
 
 <!-- OVERLAY / SHEETS -->
@@ -1073,6 +1155,7 @@ async function showApp() {
 
   renderHeader();
   renderDayStrip();
+  initNavMode();
   await initDriveFolders();
   await loadEntries();
   renderTimeline();
@@ -1088,7 +1171,7 @@ async function showApp() {
     const privBtn = e.target.closest('.toggle-privacy-btn');
     if (privBtn) {
       e.stopPropagation();
-      togglePrivacy(privBtn.getAttribute('data-id'));
+      openPrivacyPopup(privBtn.getAttribute('data-id'), privBtn);
     }
   });
 }
@@ -1350,10 +1433,7 @@ function buildEntryCard(entry) {
         <div class="entry-time">${time}${entry.weather ? ' · ' + entry.weather : ''}</div>
       </div>
       ${editBtn}
-      ${entry.type === 'note'
-        ? `<button class="toggle-privacy-btn" data-id="${entry.id}" style="font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;flex-shrink:0;border:none;cursor:pointer;${isPrivate ? 'background:rgba(240,237,232,0.06);color:rgba(240,237,232,0.35)' : 'background:rgba(159,225,203,0.12);color:#9FE1CB'}">${isPrivate ? '🔒 solo yo' : '🌐 familia'}</button>`
-        : `<span class="privacy-badge ${isPrivate ? 'pb-private' : 'pb-family'}">${isPrivate ? 'solo yo' : 'familia'}</span>`
-      }
+      <button class="toggle-privacy-btn" data-id="${entry.id}" style="font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;flex-shrink:0;border:none;cursor:pointer;${isPrivate ? 'background:rgba(240,237,232,0.06);color:rgba(240,237,232,0.35)' : 'background:rgba(159,225,203,0.12);color:#9FE1CB'}">${isPrivate ? '🔒 solo yo' : '🌐 familia'}</button>
     </div>
     <div class="entry-body">${bodyHTML}</div>
   `;
@@ -1463,11 +1543,44 @@ async function saveNote() {
   showToast('Nota guardada ✓');
 }
 
-// ── TOGGLE PRIVACY ──
-async function togglePrivacy(entryId) {
+// ── PRIVACY POPUP ──
+let privacyPopupEntryId = null;
+
+function openPrivacyPopup(entryId, btnEl) {
+  privacyPopupEntryId = entryId;
+  const entry = entries.find(e => e.id === entryId);
+  const popup = document.getElementById('privacy-popup');
+  const backdrop = document.getElementById('privacy-backdrop');
+
+  // Marcar opción activa
+  document.getElementById('pp-familia').classList.toggle('active', entry?.privacy !== 'privado');
+  document.getElementById('pp-privado').classList.toggle('active', entry?.privacy === 'privado');
+
+  // Posicionar popup cerca del botón
+  const rect = btnEl.getBoundingClientRect();
+  popup.style.top = (rect.bottom + 6) + 'px';
+  popup.style.left = Math.min(rect.left, window.innerWidth - 150) + 'px';
+
+  popup.classList.add('open');
+  backdrop.classList.add('open');
+}
+
+function closePrivacyPopup() {
+  document.getElementById('privacy-popup').classList.remove('open');
+  document.getElementById('privacy-backdrop').classList.remove('open');
+  privacyPopupEntryId = null;
+}
+
+async function setPrivacyFromPopup(newPrivacy) {
+  const entryId = privacyPopupEntryId;
+  closePrivacyPopup();
+  if (!entryId) return;
+
   const idx = entries.findIndex(e => e.id === entryId);
   if (idx === -1) return;
-  entries[idx].privacy = entries[idx].privacy === 'privado' ? 'familia' : 'privado';
+  if (entries[idx].privacy === newPrivacy) return; // sin cambio
+
+  entries[idx].privacy = newPrivacy;
   const q = "name='" + entryId + ".json' and '" + sharedFolderId + "' in parents and trashed=false";
   const r = await driveApi('files?q=' + encodeURIComponent(q) + '&fields=files(id)');
   if (r.files && r.files.length > 0) {
@@ -1479,7 +1592,7 @@ async function togglePrivacy(entryId) {
     });
   }
   renderTimeline();
-  showToast(entries[idx].privacy === 'privado' ? 'Solo tú lo ves' : 'Visible para familia');
+  showToast(newPrivacy === 'privado' ? '🔒 Solo tú lo ves' : '🌐 Visible para familia');
 }
 
 // ── EDIT NOTE ──
@@ -1681,7 +1794,11 @@ async function saveEntryToMeta(entry) {
   const file = new File([json], `${entry.id}.json`, { type: 'application/json' });
   await uploadFileToDrive(file, sharedFolderId);
   entries.unshift(entry);
-  renderDayStrip();
+  if (navMode === 'left') {
+    renderDayStripVertical();
+  } else {
+    renderDayStrip();
+  }
   renderTimeline();
 }
 
@@ -1732,21 +1849,78 @@ function escapeHTML(str) {
 }
 
 // ── DATE NAV MODE ──
-let navMode = localStorage.getItem('rememba_nav_mode') || 'strip'; // 'strip' | 'wheel'
-let wheelDay = selectedDay;
-let wheelMonth = selectedMonth;
-let wheelYear = selectedYear;
+let navMode = localStorage.getItem('rememba_nav_mode') || 'top'; // 'top' | 'left'
 
 function toggleNavMode() {
-  navMode = navMode === 'strip' ? 'wheel' : 'strip';
+  navMode = navMode === 'top' ? 'left' : 'top';
   localStorage.setItem('rememba_nav_mode', navMode);
+  applyNavMode();
+}
+
+function applyNavMode() {
   const btn = document.getElementById('nav-toggle-btn');
-  if (navMode === 'wheel') {
-    openSidePanel();
-    btn.textContent = '≡';
+  const stripH = document.getElementById('day-strip');
+  const stripV = document.getElementById('day-strip-vertical');
+  const header = document.querySelector('.header');
+
+  if (navMode === 'left') {
+    stripH.style.display = 'none';
+    stripV.style.display = 'flex';
+    header.style.borderBottom = 'none';
+    header.style.paddingBottom = '0';
+    btn.textContent = '↔ Izq';
+    renderDayStripVertical();
   } else {
-    btn.textContent = '☰';
+    stripH.style.display = 'flex';
+    stripV.style.display = 'none';
+    header.style.borderBottom = '';
+    header.style.paddingBottom = '';
+    btn.textContent = '↕ Arriba';
+    renderDayStrip();
   }
+}
+
+function renderDayStripVertical() {
+  const strip = document.getElementById('day-strip-vertical');
+  strip.innerHTML = '';
+  const today = new Date();
+  const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+  const maxDay = (selectedMonth === today.getMonth() && selectedYear === today.getFullYear())
+    ? today.getDate() : daysInMonth;
+
+  for (let d = 1; d <= maxDay; d++) {
+    const date = new Date(selectedYear, selectedMonth, d);
+    const hasEntry = entries.some(e => {
+      const ed = new Date(e.timestamp);
+      return ed.getDate() === d && ed.getMonth() === selectedMonth && ed.getFullYear() === selectedYear;
+    });
+
+    const pill = document.createElement('button');
+    pill.className = 'day-pill' + (d === selectedDay ? ' active' : '');
+    pill.innerHTML = `
+      <span class="dp-name">${DAYS_ES[date.getDay()]}</span>
+      <span class="dp-num">${d}</span>
+      ${hasEntry ? '<span class="dp-dot"></span>' : '<span class="dp-dot-empty"></span>'}
+    `;
+    pill.onclick = () => {
+      selectedDay = d;
+      document.querySelectorAll('.day-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      renderTimeline();
+    };
+    strip.appendChild(pill);
+  }
+
+  // Scroll al día seleccionado
+  setTimeout(() => {
+    const active = strip.querySelector('.day-pill.active');
+    if (active) active.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, 100);
+}
+
+// Inicializar modo al arrancar
+function initNavMode() {
+  applyNavMode();
 }
 
 function openSidePanel() {
