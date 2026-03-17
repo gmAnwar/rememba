@@ -200,23 +200,23 @@
     display: none;
     flex-direction: column;
     gap: 2px;
-    overflow-y: auto;
+    overflow-y: scroll;
     scrollbar-width: none;
     width: 60px;
     flex-shrink: 0;
     padding-right: 4px;
     border-right: 0.5px solid var(--border);
     position: sticky;
-    top: 180px;
-    height: 396px;
+    top: 160px;
+    height: calc(100vh - 220px);
+    min-height: 300px;
     align-self: flex-start;
-    scroll-snap-type: y mandatory;
     -webkit-overflow-scrolling: touch;
   }
   .day-strip-vertical::-webkit-scrollbar { display: none; }
   .day-strip-vertical .day-pill {
-    scroll-snap-align: start;
     flex-shrink: 0;
+    min-height: 62px;
   }
 
   /* Layout con columna izquierda */
