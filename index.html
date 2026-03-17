@@ -1082,7 +1082,7 @@ async function showApp() {
     const btn = e.target.closest('.edit-note-btn');
     if (btn) {
       e.stopPropagation();
-      editNote(btn.getAttribute('data-id'), parseInt(btn.getAttribute('data-idx')));
+      editNote(btn.getAttribute('data-id'));
     }
   });
 }
@@ -1336,8 +1336,8 @@ function buildEntryCard(entry) {
   card.innerHTML = `
     <div class="entry-header">
       ${entry.type === 'note'
-        ? `<button class="edit-note-btn" data-id="${entry.id || ''}" data-idx="${entries.indexOf(entry)}" style="width:30px;height:30px;border-radius:9px;background:rgba(240,237,232,0.08);border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;pointer-events:auto" title="Editar nota">✏️</button>`
-        : `<div class="entry-icon ${classMap[entry.type] || 'ei-note'}">${typeMap[entry.type] || '📝'}</div>`
+        ? `<button class="edit-note-btn" data-id="${entry.id || ''}" style="width:30px;height:30px;border-radius:9px;background:rgba(240,237,232,0.08);border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;pointer-events:auto" title="Editar nota">&#9998;</button>`
+        : `<div class="entry-icon ${classMap[entry.type] || 'ei-note'}">${typeMap[entry.type] || '&#128247;'}</div>`
       }
       <div class="entry-meta">
         <div class="entry-author">${authorName}</div>
@@ -1455,17 +1455,12 @@ async function saveNote() {
 }
 
 // ── EDIT NOTE ──
-function editNote(entryId, idx) {
-  let entry = entries.find(e => e.id === entryId);
-  // fallback: usar índice si el id no coincide
-  if (!entry && idx !== undefined && entries[idx]) {
-    entry = entries[idx];
-  }
+function editNote(entryId) {
+  const entry = entries.find(e => e.id === entryId);
   if (!entry) {
     showToast('No se encontró la nota');
     return;
   }
-  // Asegurar que idx siempre esté definido para el template literal
   const entryIdx = entries.indexOf(entry);
   const overlay = document.getElementById('overlay');
   const content = document.getElementById('sheet-content');
@@ -1479,16 +1474,15 @@ function editNote(entryId, idx) {
       <button class="priv-btn ${!isPrivate ? 'selected' : ''}" id="priv-familia" onclick="selectPrivacy('familia')">&#127758; Familia</button>
       <button class="priv-btn ${isPrivate ? 'selected' : ''}" id="priv-privado" onclick="selectPrivacy('privado')">&#128274; Solo yo</button>
     </div>
-    <button class="sheet-submit" onclick="saveEditedNote('${entryId}', ${entryIdx})">Guardar cambios</button>
+    <button class="sheet-submit" onclick="saveEditedNote('${entryId}')">Guardar cambios</button>
   `;
   setTimeout(() => document.getElementById('note-text').focus(), 100);
 }
 
-async function saveEditedNote(entryId, fallbackIdx) {
+async function saveEditedNote(entryId) {
   const text = document.getElementById('note-text').value.trim();
   if (!text) return;
-  let idx = entries.findIndex(e => e.id === entryId);
-  if (idx === -1 && fallbackIdx !== undefined) idx = fallbackIdx;
+  const idx = entries.findIndex(e => e.id === entryId);
   if (idx === -1) return;
   entries[idx].text = text;
   entries[idx].privacy = selectedPrivacy;
