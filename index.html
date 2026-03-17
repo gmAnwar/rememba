@@ -1072,6 +1072,14 @@ function renderTimeline() {
 
   dayEntries.forEach(entry => tl.appendChild(buildEntryCard(entry)));
   renderHeader();
+
+  // Delegated event listener para botones de editar
+  tl.querySelectorAll('.edit-note-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      editNote(btn.getAttribute('data-id'));
+    });
+  });
 }
 
 function buildEntryCard(entry) {
@@ -1139,7 +1147,7 @@ function buildEntryCard(entry) {
   }
 
   const editBtn = entry.type === 'note'
-    ? `<button onclick="editNote('${entry.id}')" style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px;color:var(--text3);margin-right:4px">✏️</button>`
+    ? `<button class="edit-note-btn" data-id="${entry.id}" style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px;color:var(--text3);margin-right:4px">✏️</button>`
     : '';
 
   card.innerHTML = `
@@ -1263,7 +1271,11 @@ async function saveNote() {
 // ── EDIT NOTE ──
 function editNote(entryId) {
   const entry = entries.find(e => e.id === entryId);
-  if (!entry) return;
+  if (!entry) {
+    console.error('editNote: entry not found for id:', entryId, 'Available IDs:', entries.map(e => e.id));
+    showToast('No se encontró la nota');
+    return;
+  }
   const overlay = document.getElementById('overlay');
   const content = document.getElementById('sheet-content');
   overlay.classList.add('open');
