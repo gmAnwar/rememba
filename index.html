@@ -895,6 +895,15 @@ async function showApp() {
   await initDriveFolders();
   await loadEntries();
   renderTimeline();
+
+  // Event listener delegado — montado una sola vez, funciona para todas las cards
+  document.getElementById('timeline').addEventListener('click', (e) => {
+    const btn = e.target.closest('.edit-note-btn');
+    if (btn) {
+      e.stopPropagation();
+      editNote(btn.getAttribute('data-id'));
+    }
+  });
 }
 
 // ── DRIVE FOLDERS ──
@@ -1073,13 +1082,6 @@ function renderTimeline() {
   dayEntries.forEach(entry => tl.appendChild(buildEntryCard(entry)));
   renderHeader();
 
-  // Delegated event listener para botones de editar
-  tl.querySelectorAll('.edit-note-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      editNote(btn.getAttribute('data-id'));
-    });
-  });
 }
 
 function buildEntryCard(entry) {
@@ -1147,7 +1149,7 @@ function buildEntryCard(entry) {
   }
 
   const editBtn = entry.type === 'note'
-    ? `<button class="edit-note-btn" data-id="${entry.id}" style="background:none;border:none;cursor:pointer;font-size:14px;padding:4px;color:var(--text3);margin-right:4px">✏️</button>`
+    ? `<button class="edit-note-btn" data-id="${entry.id}" style="background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;font-size:13px;padding:5px 8px;color:var(--text2);margin-right:4px;flex-shrink:0">✏️</button>`
     : '';
 
   card.innerHTML = `
