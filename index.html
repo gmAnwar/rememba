@@ -701,6 +701,161 @@
     align-items: center;
     justify-content: center;
   }
+
+  /* ── DATE NAV TOGGLE ── */
+  .nav-toggle-btn {
+    background: none;
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    color: var(--text3);
+    font-size: 13px;
+    padding: 5px 9px;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .nav-toggle-btn:hover { background: rgba(255,255,255,0.06); color: var(--text2); }
+
+  /* ── SIDE PANEL ── */
+  .side-panel-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 300;
+    display: none;
+    backdrop-filter: blur(2px);
+  }
+  .side-panel-overlay.open { display: block; }
+
+  .side-panel {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    background: #1a1a1a;
+    z-index: 301;
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    display: flex;
+    flex-direction: column;
+    padding: 52px 0 32px;
+  }
+
+  .side-panel.open { transform: translateX(0); }
+
+  .side-panel-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0 20px 16px;
+    border-bottom: 0.5px solid var(--border);
+  }
+
+  .side-panel-selected {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    padding: 14px 20px 4px;
+    line-height: 1.2;
+  }
+
+  .side-panel-selected-sub {
+    font-size: 13px;
+    color: var(--text3);
+    padding: 0 20px 16px;
+  }
+
+  /* Drum wheel */
+  .wheel-container {
+    display: flex;
+    gap: 0;
+    padding: 0 12px;
+    flex: 1;
+    align-items: center;
+    position: relative;
+  }
+
+  .wheel-container::before,
+  .wheel-container::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    height: 1px;
+    background: rgba(159,225,203,0.25);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .wheel-container::before { top: calc(50% - 22px); }
+  .wheel-container::after  { top: calc(50% + 22px); }
+
+  .wheel-col {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    height: 220px;
+    cursor: ns-resize;
+    user-select: none;
+  }
+
+  .wheel-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: transform 0.15s ease-out;
+  }
+
+  .wheel-item {
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text3);
+    width: 100%;
+    transition: color 0.1s, font-size 0.1s;
+    flex-shrink: 0;
+  }
+
+  .wheel-item.selected {
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .wheel-col-label {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding-bottom: 6px;
+  }
+
+  .wheel-col-wrap { flex: 1; display: flex; flex-direction: column; }
+
+  .side-panel-apply {
+    margin: 16px 20px 0;
+    padding: 13px;
+    background: var(--text);
+    color: #0f0f0f;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+
+  .side-panel-apply:active { opacity: 0.85; }
+
 </style>
 </head>
 <body>
@@ -734,9 +889,12 @@
   <div class="header">
     <div class="header-top">
       <span class="app-wordmark">Rememba</span>
-      <button class="avatar-btn" id="avatar-btn" onclick="handleSignOut()">
-        <span id="avatar-initials">AS</span>
-      </button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="nav-toggle-btn" id="nav-toggle-btn" onclick="toggleNavMode()" title="Cambiar vista de fechas">☰</button>
+        <button class="avatar-btn" id="avatar-btn" onclick="handleSignOut()">
+          <span id="avatar-initials">AS</span>
+        </button>
+      </div>
     </div>
     <div class="month-year" id="month-year">Marzo 2026</div>
     <div class="entry-count" id="entry-count">Cargando...</div>
@@ -767,6 +925,29 @@
       <span>Nota</span>
     </button>
   </div>
+</div>
+
+<!-- SIDE DATE PANEL -->
+<div class="side-panel-overlay" id="side-panel-overlay" onclick="closeSidePanel()"></div>
+<div class="side-panel" id="side-panel">
+  <div class="side-panel-title">Ir a fecha</div>
+  <div class="side-panel-selected" id="sp-selected-date">17 marzo 2026</div>
+  <div class="side-panel-selected-sub" id="sp-entry-count">— entradas</div>
+  <div class="wheel-container">
+    <div class="wheel-col-wrap">
+      <div class="wheel-col-label">Día</div>
+      <div class="wheel-col" id="wheel-day"><div class="wheel-inner" id="wheel-inner-day"></div></div>
+    </div>
+    <div class="wheel-col-wrap">
+      <div class="wheel-col-label">Mes</div>
+      <div class="wheel-col" id="wheel-month"><div class="wheel-inner" id="wheel-inner-month"></div></div>
+    </div>
+    <div class="wheel-col-wrap">
+      <div class="wheel-col-label">Año</div>
+      <div class="wheel-col" id="wheel-year"><div class="wheel-inner" id="wheel-inner-year"></div></div>
+    </div>
+  </div>
+  <button class="side-panel-apply" onclick="applyDateFromWheel()">Ver este día</button>
 </div>
 
 <!-- OVERLAY / SHEETS -->
@@ -1527,6 +1708,171 @@ function showToast(msg) {
 function escapeHTML(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
+
+// ── DATE NAV MODE ──
+let navMode = localStorage.getItem('rememba_nav_mode') || 'strip'; // 'strip' | 'wheel'
+let wheelDay = selectedDay;
+let wheelMonth = selectedMonth;
+let wheelYear = selectedYear;
+
+function toggleNavMode() {
+  navMode = navMode === 'strip' ? 'wheel' : 'strip';
+  localStorage.setItem('rememba_nav_mode', navMode);
+  const btn = document.getElementById('nav-toggle-btn');
+  if (navMode === 'wheel') {
+    openSidePanel();
+    btn.textContent = '≡';
+  } else {
+    btn.textContent = '☰';
+  }
+}
+
+function openSidePanel() {
+  wheelDay = selectedDay;
+  wheelMonth = selectedMonth;
+  wheelYear = selectedYear;
+  buildWheels();
+  document.getElementById('side-panel-overlay').classList.add('open');
+  document.getElementById('side-panel').classList.add('open');
+  updateSidePanelLabel();
+}
+
+function closeSidePanel() {
+  document.getElementById('side-panel-overlay').classList.remove('open');
+  document.getElementById('side-panel').classList.remove('open');
+  // Regresar toggle a strip si se cierra sin aplicar
+  navMode = 'strip';
+  localStorage.setItem('rememba_nav_mode', 'strip');
+  document.getElementById('nav-toggle-btn').textContent = '☰';
+}
+
+function applyDateFromWheel() {
+  selectedDay = wheelDay;
+  selectedMonth = wheelMonth;
+  selectedYear = wheelYear;
+  closeSidePanel();
+  renderDayStrip();
+  renderTimeline();
+}
+
+function updateSidePanelLabel() {
+  const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  document.getElementById('sp-selected-date').textContent = `${wheelDay} ${months[wheelMonth]} ${wheelYear}`;
+  const count = entries.filter(e => {
+    const d = new Date(e.timestamp);
+    return d.getDate() === wheelDay && d.getMonth() === wheelMonth && d.getFullYear() === wheelYear;
+  }).length;
+  document.getElementById('sp-entry-count').textContent = count === 0 ? 'Sin entradas' : `${count} entrada${count > 1 ? 's' : ''}`;
+}
+
+function buildWheels() {
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const currentYear = new Date().getFullYear();
+  const years = [];
+  for (let y = currentYear; y >= currentYear - 10; y--) years.push(y);
+
+  buildWheel('wheel-inner-day', 31, wheelDay - 1, (i) => String(i + 1).padStart(2,'0'), (i) => { wheelDay = i + 1; updateSidePanelLabel(); });
+  buildWheel('wheel-inner-month', 12, wheelMonth, (i) => months[i], (i) => { wheelMonth = i; updateSidePanelLabel(); });
+  buildWheel('wheel-inner-year', years.length, years.indexOf(wheelYear) >= 0 ? years.indexOf(wheelYear) : 0, (i) => String(years[i]), (i) => { wheelYear = years[i]; updateSidePanelLabel(); });
+}
+
+function buildWheel(innerId, count, selectedIdx, labelFn, onChangeFn) {
+  const inner = document.getElementById(innerId);
+  const col = inner.parentElement;
+  inner.innerHTML = '';
+
+  // padding arriba y abajo para que el centro sea el seleccionado
+  const pad = 2;
+  for (let p = 0; p < pad; p++) {
+    const spacer = document.createElement('div');
+    spacer.className = 'wheel-item';
+    inner.appendChild(spacer);
+  }
+
+  for (let i = 0; i < count; i++) {
+    const item = document.createElement('div');
+    item.className = 'wheel-item' + (i === selectedIdx ? ' selected' : '');
+    item.textContent = labelFn(i);
+    inner.appendChild(item);
+  }
+
+  for (let p = 0; p < pad; p++) {
+    const spacer = document.createElement('div');
+    spacer.className = 'wheel-item';
+    inner.appendChild(spacer);
+  }
+
+  const itemH = 44;
+  let currentIdx = selectedIdx;
+  inner.style.transform = `translateY(${-currentIdx * itemH}px)`;
+
+  // Touch/mouse drag
+  let startY = 0;
+  let startOffset = 0;
+  let isDragging = false;
+
+  function getOffset() {
+    const t = inner.style.transform;
+    const m = t.match(/translateY\((-?[\d.]+)px\)/);
+    return m ? parseFloat(m[1]) : 0;
+  }
+
+  function snapTo(idx) {
+    idx = Math.max(0, Math.min(count - 1, idx));
+    currentIdx = idx;
+    inner.style.transition = 'transform 0.2s ease-out';
+    inner.style.transform = `translateY(${-idx * itemH}px)`;
+    inner.querySelectorAll('.wheel-item').forEach((el, i) => {
+      el.classList.toggle('selected', i - pad === idx);
+    });
+    setTimeout(() => { inner.style.transition = ''; }, 200);
+    onChangeFn(idx);
+  }
+
+  function onStart(y) {
+    isDragging = true;
+    startY = y;
+    startOffset = getOffset();
+    inner.style.transition = '';
+  }
+
+  function onMove(y) {
+    if (!isDragging) return;
+    const delta = y - startY;
+    const newOffset = startOffset + delta;
+    inner.style.transform = `translateY(${newOffset}px)`;
+    const newIdx = Math.round(-newOffset / itemH);
+    const clamped = Math.max(0, Math.min(count - 1, newIdx));
+    inner.querySelectorAll('.wheel-item').forEach((el, i) => {
+      el.classList.toggle('selected', i - pad === clamped);
+    });
+  }
+
+  function onEnd(y) {
+    if (!isDragging) return;
+    isDragging = false;
+    const delta = y - startY;
+    const newOffset = startOffset + delta;
+    const newIdx = Math.round(-newOffset / itemH);
+    snapTo(newIdx);
+  }
+
+  col.addEventListener('mousedown', e => { onStart(e.clientY); e.preventDefault(); });
+  window.addEventListener('mousemove', e => { if (isDragging) onMove(e.clientY); });
+  window.addEventListener('mouseup', e => { if (isDragging) onEnd(e.clientY); });
+
+  col.addEventListener('touchstart', e => { onStart(e.touches[0].clientY); }, { passive: true });
+  col.addEventListener('touchmove', e => { onMove(e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+  col.addEventListener('touchend', e => { onEnd(e.changedTouches[0].clientY); });
+
+  // Scroll wheel (desktop)
+  col.addEventListener('wheel', e => {
+    e.preventDefault();
+    const dir = e.deltaY > 0 ? 1 : -1;
+    snapTo(currentIdx + dir);
+  }, { passive: false });
+}
+
 </script>
 </body>
 </html>
