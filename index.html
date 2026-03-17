@@ -1738,8 +1738,24 @@ async function loadPhotosAsBlob() {
       const blob = await r.blob();
       const url = URL.createObjectURL(blob);
       video.src = url;
-      video.innerHTML = ''; // quitar el texto de "Cargando..."
+      video.innerHTML = '';
     } catch(e) { console.error('Video load error:', e); }
+  }
+
+  // Cargar audios como blob
+  const audioPlayers = document.querySelectorAll('.play-btn[data-fid]');
+  for (const btn of audioPlayers) {
+    if (btn.dataset.blobUrl) continue;
+    const fid = btn.getAttribute('data-fid');
+    if (!fid) continue;
+    try {
+      const r = await fetch('https://www.googleapis.com/drive/v3/files/' + fid + '?alt=media', {
+        headers: { Authorization: 'Bearer ' + accessToken }
+      });
+      if (!r.ok) continue;
+      const blob = await r.blob();
+      btn.dataset.blobUrl = URL.createObjectURL(blob);
+    } catch(e) { console.error('Audio load error:', e); }
   }
 }
 
@@ -1783,7 +1799,7 @@ function buildEntryCard(entry) {
 
     bodyHTML += `
       <div class="audio-player">
-        <button class="play-btn" onclick="playAudio('${entry.fileId}', this)">
+        <button class="play-btn" data-fid="${entry.fileId}" onclick="playAudio(this)">
           <svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg>
         </button>
         <div class="audio-waves">${bars}</div>
@@ -2600,6 +2616,7 @@ async function saveEntryToMeta(entry) {
   entries.unshift(entry);
   if (navMode === 'left') {
     renderDayStripVertical();
+    setTimeout(initVerticalStripTouch, 100);
   } else {
     renderDayStrip();
   }
@@ -2607,13 +2624,25 @@ async function saveEntryToMeta(entry) {
 }
 
 // ── AUDIO PLAYBACK ──
-function playAudio(fileId, btn) {
-  const url = `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&access_token=${accessToken}`;
-  const audio = new Audio(url);
+function playAudio(btn) {
+  const blobUrl = btn.dataset.blobUrl;
+  if (!blobUrl) { showToast('Audio cargando, intenta de nuevo'); return; }
+  if (btn._audio && !btn._audio.paused) {
+    btn._audio.pause();
+    btn.innerHTML = '<svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg>';
+    return;
+  }
+  const audio = new Audio(blobUrl);
+  btn._audio = audio;
   audio.play();
-  btn.innerHTML = `<svg viewBox="0 0 10 12"><rect x="0" y="0" width="3" height="12"/><rect x="6" y="0" width="3" height="12"/></svg>`;
+  btn.innerHTML = '<svg viewBox="0 0 10 12"><rect x="0" y="0" width="3" height="12"/><rect x="6" y="0" width="3" height="12"/></svg>';
   audio.onended = () => {
-    btn.innerHTML = `<svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg>`;
+    btn.innerHTML = '<svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg>';
+    btn._audio = null;
+  };
+  audio.onerror = () => {
+    showToast('Error al reproducir audio');
+    btn.innerHTML = '<svg viewBox="0 0 10 12"><polygon points="0,0 10,6 0,12"/></svg>';
   };
 }
 
@@ -2685,6 +2714,7 @@ function applyNavMode() {
     if (prevBtn) prevBtn.style.display = 'none';
     if (nextBtn) nextBtn.style.display = 'none';
     renderDayStripVertical();
+    setTimeout(initVerticalStripTouch, 100);
   } else {
     stripH.style.display = 'flex';
     document.getElementById('day-strip-vertical-wrapper').style.display = 'none';
@@ -2766,6 +2796,18 @@ function centerActivePillVertical() {
   vStripOffset = Math.max(0, Math.min(max, activeIdx - 3));
   strip.style.transition = 'none';
   strip.style.transform = `translateY(${-vStripOffset * 66}px)`;
+}
+
+function initVerticalStripTouch() {
+  const wrap = document.getElementById('day-strip-vertical-wrapper');
+  if (!wrap || wrap._touchInit) return;
+  wrap._touchInit = true;
+  let startY = 0;
+  wrap.addEventListener('touchstart', e => { startY = e.touches[0].clientY; }, { passive: true });
+  wrap.addEventListener('touchend', e => {
+    const dy = startY - e.changedTouches[0].clientY;
+    if (Math.abs(dy) > 20) scrollVerticalStrip(dy > 0 ? 1 : -1);
+  }, { passive: true });
 }
 
 function openSidePanel() {
