@@ -178,6 +178,8 @@
     padding: 0 0 14px;
     scrollbar-width: none;
     border-bottom: 0.5px solid var(--border);
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
   .day-strip::-webkit-scrollbar { display: none; }
 
@@ -188,10 +190,14 @@
     gap: 2px;
     overflow-y: auto;
     scrollbar-width: none;
-    width: 56px;
+    width: 60px;
     flex-shrink: 0;
-    padding-right: 8px;
+    padding-right: 4px;
     border-right: 0.5px solid var(--border);
+    position: sticky;
+    top: 180px;
+    max-height: calc(100vh - 200px);
+    align-self: flex-start;
   }
   .day-strip-vertical::-webkit-scrollbar { display: none; }
 
@@ -199,11 +205,14 @@
   .app-body {
     display: flex;
     gap: 0;
+    min-height: calc(100vh - 180px);
+    align-items: flex-start;
   }
 
   .app-body .timeline {
     flex: 1;
     min-width: 0;
+    padding-left: 12px;
   }
 
   /* Shared pill styles */
@@ -228,10 +237,13 @@
   /* Vertical pill — más compacto */
   .day-strip-vertical .day-pill {
     min-width: unset;
-    width: 48px;
-    padding: 7px 4px;
+    width: 52px;
+    padding: 6px 4px;
     border-radius: 10px;
+    gap: 2px;
   }
+  .day-strip-vertical .dp-name { font-size: 9px; }
+  .day-strip-vertical .dp-num { font-size: 15px; }
 
   .dp-name {
     font-size: 10px;
