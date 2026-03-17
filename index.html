@@ -196,25 +196,54 @@
   }
 
   /* Day strip — vertical (modo izquierda) */
-  .day-strip-vertical {
+  .day-strip-vertical-wrapper {
     display: none;
     flex-direction: column;
-    gap: 2px;
-    overflow-y: scroll;
-    scrollbar-width: none;
-    width: 60px;
-    flex-shrink: 0;
-    padding-right: 4px;
-    border-right: 0.5px solid var(--border);
+    align-items: center;
+    gap: 6px;
     position: sticky;
     top: 160px;
-    height: calc(100vh - 220px);
-    min-height: 300px;
     align-self: flex-start;
-    -webkit-overflow-scrolling: touch;
+    width: 64px;
+    flex-shrink: 0;
+    border-right: 0.5px solid var(--border);
+    padding-right: 4px;
+    height: calc(100vh - 200px);
+    min-height: 300px;
+  }
+  .v-arrow-btn {
+    width: 40px;
+    height: 28px;
+    background: rgba(255,255,255,0.06);
+    border: 0.5px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    color: var(--text2);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+  .v-arrow-btn:hover { background: rgba(255,255,255,0.12); }
+  .v-arrow-btn:active { transform: scale(0.95); }
+  .day-strip-vertical {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    width: 100%;
   }
   .day-strip-vertical::-webkit-scrollbar { display: none; }
   .day-strip-vertical .day-pill {
+    min-width: unset;
+    width: 100%;
+    padding: 8px 6px;
+    border-radius: 12px;
+    gap: 4px;
     flex-shrink: 0;
   }
 
@@ -1233,7 +1262,11 @@
   </div>
 
   <div class="app-body" id="app-body">
-    <div class="day-strip-vertical" id="day-strip-vertical"></div>
+    <div class="day-strip-vertical-wrapper" id="day-strip-vertical-wrapper">
+      <button class="v-arrow-btn" onclick="scrollVerticalStrip(-1)">&#8963;</button>
+      <div class="day-strip-vertical" id="day-strip-vertical"></div>
+      <button class="v-arrow-btn" onclick="scrollVerticalStrip(1)">&#8964;</button>
+    </div>
     <div class="timeline" id="timeline"></div>
   </div>
 
@@ -2641,7 +2674,7 @@ function applyNavMode() {
 
   if (navMode === 'left') {
     stripH.style.display = 'none';
-    stripV.style.display = 'flex';
+    document.getElementById('day-strip-vertical-wrapper').style.display = 'flex';
     header.style.borderBottom = 'none';
     header.style.paddingBottom = '0';
     btn.textContent = '↔ Izq';
@@ -2650,7 +2683,7 @@ function applyNavMode() {
     renderDayStripVertical();
   } else {
     stripH.style.display = 'flex';
-    stripV.style.display = 'none';
+    document.getElementById('day-strip-vertical-wrapper').style.display = 'none';
     header.style.borderBottom = '';
     header.style.paddingBottom = '';
     btn.textContent = '↕ Arriba';
@@ -2689,11 +2722,8 @@ function renderDayStripVertical() {
     strip.appendChild(pill);
   }
 
-  // Scroll al día seleccionado
-  setTimeout(() => {
-    const active = strip.querySelector('.day-pill.active');
-    if (active) active.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  }, 100);
+  // Centrar el día activo
+  setTimeout(() => { centerActivePillVertical(); }, 50);
 }
 
 // Inicializar modo al arrancar
@@ -2704,6 +2734,30 @@ function initNavMode() {
 function scrollStrip(dir) {
   const strip = document.getElementById('day-strip');
   strip.scrollBy({ left: dir * 56, behavior: 'smooth' });
+}
+
+let vStripOffset = 0;
+const V_ITEM_H = 62; // altura de cada pill + gap
+const V_VISIBLE = 7; // días visibles
+
+function scrollVerticalStrip(dir) {
+  const strip = document.getElementById('day-strip-vertical');
+  const pills = strip.querySelectorAll('.day-pill');
+  const max = Math.max(0, pills.length - V_VISIBLE);
+  vStripOffset = Math.max(0, Math.min(max, vStripOffset + dir));
+  strip.style.transform = `translateY(${-vStripOffset * V_ITEM_H}px)`;
+  strip.style.transition = 'transform 0.2s ease';
+}
+
+function centerActivePillVertical() {
+  const strip = document.getElementById('day-strip-vertical');
+  const pills = Array.from(strip.querySelectorAll('.day-pill'));
+  const activeIdx = pills.findIndex(p => p.classList.contains('active'));
+  if (activeIdx === -1) return;
+  const max = Math.max(0, pills.length - V_VISIBLE);
+  vStripOffset = Math.max(0, Math.min(max, activeIdx - Math.floor(V_VISIBLE / 2)));
+  strip.style.transform = `translateY(${-vStripOffset * V_ITEM_H}px)`;
+  strip.style.transition = 'none';
 }
 
 function openSidePanel() {
