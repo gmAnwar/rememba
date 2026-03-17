@@ -1079,10 +1079,16 @@ async function showApp() {
 
   // Event listener delegado — montado una sola vez, funciona para todas las cards
   document.getElementById('timeline').addEventListener('click', (e) => {
-    const btn = e.target.closest('.edit-note-btn');
-    if (btn) {
+    const editBtn = e.target.closest('.edit-note-btn');
+    if (editBtn) {
       e.stopPropagation();
-      editNote(btn.getAttribute('data-id'));
+      editNote(editBtn.getAttribute('data-id'));
+      return;
+    }
+    const privBtn = e.target.closest('.toggle-privacy-btn');
+    if (privBtn) {
+      e.stopPropagation();
+      togglePrivacy(privBtn.getAttribute('data-id'));
     }
   });
 }
@@ -1344,7 +1350,10 @@ function buildEntryCard(entry) {
         <div class="entry-time">${time}${entry.weather ? ' · ' + entry.weather : ''}</div>
       </div>
       ${editBtn}
-      <span class="privacy-badge ${isPrivate ? 'pb-private' : 'pb-family'}">${isPrivate ? 'solo yo' : 'familia'}</span>
+      ${entry.type === 'note'
+        ? `<button class="toggle-privacy-btn" data-id="${entry.id}" style="font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;flex-shrink:0;border:none;cursor:pointer;${isPrivate ? 'background:rgba(240,237,232,0.06);color:rgba(240,237,232,0.35)' : 'background:rgba(159,225,203,0.12);color:#9FE1CB'}">${isPrivate ? '🔒 solo yo' : '🌐 familia'}</button>`
+        : `<span class="privacy-badge ${isPrivate ? 'pb-private' : 'pb-family'}">${isPrivate ? 'solo yo' : 'familia'}</span>`
+      }
     </div>
     <div class="entry-body">${bodyHTML}</div>
   `;
@@ -1452,6 +1461,25 @@ async function saveNote() {
 
   closeSheet();
   showToast('Nota guardada ✓');
+}
+
+// ── TOGGLE PRIVACY ──
+async function togglePrivacy(entryId) {
+  const idx = entries.findIndex(e => e.id === entryId);
+  if (idx === -1) return;
+  entries[idx].privacy = entries[idx].privacy === 'privado' ? 'familia' : 'privado';
+  const q = "name='" + entryId + ".json' and '" + sharedFolderId + "' in parents and trashed=false";
+  const r = await driveApi('files?q=' + encodeURIComponent(q) + '&fields=files(id)');
+  if (r.files && r.files.length > 0) {
+    const fid = r.files[0].id;
+    await fetch('https://www.googleapis.com/upload/drive/v3/files/' + fid + '?uploadType=media', {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(entries[idx])
+    });
+  }
+  renderTimeline();
+  showToast(entries[idx].privacy === 'privado' ? 'Solo tú lo ves' : 'Visible para familia');
 }
 
 // ── EDIT NOTE ──
