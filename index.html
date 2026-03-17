@@ -982,6 +982,63 @@
   }
   .privacy-popup-backdrop.open { display: block; }
 
+
+  /* ── DELETE / OPTIONS ── */
+  .entry-options-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    font-size: 16px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    line-height: 1;
+    transition: background 0.15s;
+  }
+  .entry-options-btn:hover { background: rgba(255,255,255,0.06); }
+
+  .options-popup {
+    position: fixed;
+    background: #2a2a2a;
+    border: 0.5px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 6px;
+    z-index: 500;
+    display: none;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 140px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .options-popup.open { display: flex; }
+
+  .options-popup-opt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: background 0.1s;
+  }
+  .options-popup-opt:hover { background: rgba(255,255,255,0.08); }
+  .options-popup-opt.danger { color: #E24B4A; }
+  .options-popup-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 499;
+    display: none;
+  }
+  .options-popup-backdrop.open { display: block; }
+
 </style>
 </head>
 <body>
@@ -1077,6 +1134,13 @@
     </div>
   </div>
   <button class="side-panel-apply" onclick="applyDateFromWheel()">Ver este día</button>
+</div>
+
+<!-- OPTIONS POPUP -->
+<div class="options-popup-backdrop" id="options-backdrop" onclick="closeOptionsPopup()"></div>
+<div class="options-popup" id="options-popup">
+  <button class="options-popup-opt" id="opt-edit" onclick="optEdit()">✏️ Editar nota</button>
+  <button class="options-popup-opt danger" id="opt-delete" onclick="optDelete()">🗑️ Eliminar</button>
 </div>
 
 <!-- PRIVACY POPUP -->
@@ -1226,8 +1290,30 @@ async function showApp() {
     if (privBtn) {
       e.stopPropagation();
       openPrivacyPopup(privBtn.getAttribute('data-id'), privBtn);
+      return;
+    }
+    const optBtn = e.target.closest('.entry-options-btn');
+    if (optBtn) {
+      e.stopPropagation();
+      openOptionsPopup(optBtn.getAttribute('data-id'), optBtn.getAttribute('data-type'), optBtn);
     }
   });
+
+  // Fix video en móvil — cargar con fetch y blob
+  document.getElementById('timeline').addEventListener('play', async (e) => {
+    const video = e.target;
+    if (video.tagName === 'VIDEO' && !video.src && video.dataset.fileId) {
+      const fileId = video.dataset.fileId;
+      try {
+        const r = await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
+          headers: { Authorization: 'Bearer ' + accessToken }
+        });
+        const blob = await r.blob();
+        video.src = URL.createObjectURL(blob);
+        video.play();
+      } catch(err) { console.error('Video load error:', err); }
+    }
+  }, true);
 }
 
 // ── DRIVE FOLDERS ──
@@ -1461,8 +1547,9 @@ function buildEntryCard(entry) {
 
   if (entry.type === 'video' && entry.fileId) {
     bodyHTML += `
-      <video controls style="width:100%;border-radius:10px;max-height:220px;background:#000"
-        src="https://www.googleapis.com/drive/v3/files/${entry.fileId}?alt=media&access_token=${accessToken}">
+      <video controls style="width:100%;border-radius:10px;max-height:220px;background:#000" data-file-id="${entry.fileId}"
+        preload="metadata">
+        <source data-src="https://www.googleapis.com/drive/v3/files/${entry.fileId}?alt=media" type="video/mp4">
       </video>
     `;
     if (entry.text) bodyHTML += `<p class="entry-text" style="margin-top:8px">${escapeHTML(entry.text)}</p>`;
@@ -1486,8 +1573,8 @@ function buildEntryCard(entry) {
         <div class="entry-author">${authorName}</div>
         <div class="entry-time">${time}${entry.weather ? ' · ' + entry.weather : ''}</div>
       </div>
-      ${editBtn}
       <button class="toggle-privacy-btn" data-id="${entry.id}" style="font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;flex-shrink:0;border:none;cursor:pointer;${isPrivate ? 'background:rgba(240,237,232,0.06);color:rgba(240,237,232,0.35)' : 'background:rgba(159,225,203,0.12);color:#9FE1CB'}">${isPrivate ? '🔒 solo yo' : '🌐 familia'}</button>
+      <button class="entry-options-btn" data-id="${entry.id}" data-type="${entry.type}">···</button>
     </div>
     <div class="entry-body">${bodyHTML}</div>
   `;
@@ -1599,6 +1686,67 @@ async function saveNote() {
 
   closeSheet();
   showToast('Nota guardada ✓');
+}
+
+// ── OPTIONS POPUP ──
+let optionsPopupEntryId = null;
+let optionsPopupEntryType = null;
+
+function openOptionsPopup(entryId, entryType, btnEl) {
+  optionsPopupEntryId = entryId;
+  optionsPopupEntryType = entryType;
+  const popup = document.getElementById('options-popup');
+  const backdrop = document.getElementById('options-backdrop');
+  const editOpt = document.getElementById('opt-edit');
+
+  // Solo mostrar editar para notas
+  editOpt.style.display = entryType === 'note' ? 'flex' : 'none';
+
+  const rect = btnEl.getBoundingClientRect();
+  popup.style.top = (rect.bottom + 6) + 'px';
+  popup.style.left = Math.min(rect.left - 100, window.innerWidth - 160) + 'px';
+
+  popup.classList.add('open');
+  backdrop.classList.add('open');
+}
+
+function closeOptionsPopup() {
+  document.getElementById('options-popup').classList.remove('open');
+  document.getElementById('options-backdrop').classList.remove('open');
+  optionsPopupEntryId = null;
+  optionsPopupEntryType = null;
+}
+
+function optEdit() {
+  const id = optionsPopupEntryId;
+  closeOptionsPopup();
+  editNote(id);
+}
+
+async function optDelete() {
+  const entryId = optionsPopupEntryId;
+  closeOptionsPopup();
+  if (!entryId) return;
+  if (!confirm('¿Eliminar esta entrada?')) return;
+
+  const idx = entries.findIndex(e => e.id === entryId);
+  if (idx === -1) return;
+
+  // Buscar y eliminar el JSON de metadatos en Drive
+  const q = "name='" + entryId + ".json' and '" + sharedFolderId + "' in parents and trashed=false";
+  const r = await driveApi('files?q=' + encodeURIComponent(q) + '&fields=files(id)');
+  if (r.files && r.files.length > 0) {
+    const fid = r.files[0].id;
+    await fetch('https://www.googleapis.com/drive/v3/files/' + fid, {
+      method: 'DELETE',
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+  }
+
+  entries.splice(idx, 1);
+  renderDayStrip();
+  renderTimeline();
+  showToast('Entrada eliminada');
 }
 
 // ── PRIVACY POPUP ──
