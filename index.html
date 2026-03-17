@@ -1380,21 +1380,7 @@ async function showApp() {
     }
   });
 
-  // Fix video en móvil — cargar con fetch y blob
-  document.getElementById('timeline').addEventListener('play', async (e) => {
-    const video = e.target;
-    if (video.tagName === 'VIDEO' && !video.src && video.dataset.fileId) {
-      const fileId = video.dataset.fileId;
-      try {
-        const r = await fetch('https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media', {
-          headers: { Authorization: 'Bearer ' + accessToken }
-        });
-        const blob = await r.blob();
-        video.src = URL.createObjectURL(blob);
-        video.play();
-      } catch(err) { console.error('Video load error:', err); }
-    }
-  }, true);
+
 }
 
 // ── DRIVE FOLDERS ──
@@ -1578,9 +1564,10 @@ function renderTimeline() {
 }
 
 async function loadPhotosAsBlob() {
+  // Cargar fotos
   const imgs = document.querySelectorAll('img[data-fid]');
   for (const img of imgs) {
-    if (img.src && img.src.startsWith('blob:')) continue; // ya cargada
+    if (img.src && img.src.startsWith('blob:')) continue;
     const fid = img.getAttribute('data-fid');
     if (!fid) continue;
     try {
@@ -1594,6 +1581,24 @@ async function loadPhotosAsBlob() {
       img.onclick = () => openLightbox(url);
       img.style.cursor = 'pointer';
     } catch(e) { console.error('Photo load error:', e); }
+  }
+
+  // Cargar videos
+  const videos = document.querySelectorAll('video[data-fid]');
+  for (const video of videos) {
+    if (video.src && video.src.startsWith('blob:')) continue;
+    const fid = video.getAttribute('data-fid');
+    if (!fid) continue;
+    try {
+      const r = await fetch('https://www.googleapis.com/drive/v3/files/' + fid + '?alt=media', {
+        headers: { Authorization: 'Bearer ' + accessToken }
+      });
+      if (!r.ok) continue;
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      video.src = url;
+      video.innerHTML = ''; // quitar el texto de "Cargando..."
+    } catch(e) { console.error('Video load error:', e); }
   }
 }
 
@@ -1649,9 +1654,9 @@ function buildEntryCard(entry) {
 
   if (entry.type === 'video' && entry.fileId) {
     bodyHTML += `
-      <video controls style="width:100%;border-radius:10px;max-height:220px;background:#000" data-file-id="${entry.fileId}"
-        preload="metadata">
-        <source data-src="https://www.googleapis.com/drive/v3/files/${entry.fileId}?alt=media" type="video/mp4">
+      <video controls style="width:100%;border-radius:10px;max-height:220px;background:#000;cursor:pointer"
+        data-fid="${entry.fileId}" data-type="video">
+        <p style="color:var(--text2);text-align:center;padding:20px;font-size:13px">Cargando video...</p>
       </video>
     `;
     if (entry.text) bodyHTML += `<p class="entry-text" style="margin-top:8px">${escapeHTML(entry.text)}</p>`;
@@ -1732,7 +1737,12 @@ function openSheet(type) {
   if (type === 'photo') {
     document.getElementById('file-input-photo').click();
     closeSheet();
-    document.getElementById('file-input-photo').onchange = handlePhotoSelected;
+    document.getElementById('file-input-photo').onchange = (e) => {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
+      showMediaCommentSheet(files, 'photo');
+      e.target.value = '';
+    };
     return;
   }
 
@@ -1811,7 +1821,8 @@ function openOptionsPopup(entryId, entryType, btnEl) {
   const editOpt = document.getElementById('opt-edit');
 
   // Solo mostrar editar para notas
-  editOpt.style.display = entryType === 'note' ? 'flex' : 'none';
+  editOpt.textContent = entryType === 'note' ? '✏️ Editar nota' : '✏️ Editar comentario';
+  editOpt.style.display = 'flex';
 
   const rect = btnEl.getBoundingClientRect();
   popup.style.top = (rect.bottom + 6) + 'px';
@@ -1830,8 +1841,49 @@ function closeOptionsPopup() {
 
 function optEdit() {
   const id = optionsPopupEntryId;
+  const type = optionsPopupEntryType;
   closeOptionsPopup();
-  editNote(id);
+  if (type === 'note') {
+    editNote(id);
+  } else {
+    editComment(id);
+  }
+}
+
+function editComment(entryId) {
+  const entry = entries.find(e => e.id === entryId);
+  if (!entry) return;
+  const overlay = document.getElementById('overlay');
+  const content = document.getElementById('sheet-content');
+  overlay.classList.add('open');
+  content.innerHTML = `
+    <div class="sheet-title">Editar comentario</div>
+    <textarea class="note-area" id="comment-text" placeholder="Agrega un comentario...">${(entry.text || '').replace(/</g,'&lt;')}</textarea>
+    <button class="sheet-submit" style="margin-top:14px" onclick="saveEditedComment('${entryId}')">Guardar</button>
+  `;
+  setTimeout(() => document.getElementById('comment-text').focus(), 100);
+}
+
+async function saveEditedComment(entryId) {
+  const text = document.getElementById('comment-text').value.trim();
+  const idx = entries.findIndex(e => e.id === entryId);
+  if (idx === -1) return;
+  entries[idx].text = text;
+  showUploadProgress('Guardando comentario...');
+  const q = "name='" + entryId + ".json' and '" + sharedFolderId + "' in parents and trashed=false";
+  const r = await driveApi('files?q=' + encodeURIComponent(q) + '&fields=files(id)');
+  if (r.files && r.files.length > 0) {
+    const fid = r.files[0].id;
+    await fetch('https://www.googleapis.com/upload/drive/v3/files/' + fid + '?uploadType=media', {
+      method: 'PATCH',
+      headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify(entries[idx])
+    });
+  }
+  removeUploadProgress();
+  closeSheet();
+  renderTimeline();
+  showToast('Comentario guardado ✓');
 }
 
 function optChangeDate() {
@@ -2028,13 +2080,58 @@ async function saveEditedNote(entryId) {
 // ── PICK VIDEO ──
 function pickVideo(source) {
   closeSheet();
-  if (source === 'camera') {
-    document.getElementById('file-input-video').click();
-    document.getElementById('file-input-video').onchange = handleVideoSelected;
-  } else {
-    document.getElementById('file-input-video-gallery').click();
-    document.getElementById('file-input-video-gallery').onchange = handleVideoSelected;
+  const inputId = source === 'camera' ? 'file-input-video' : 'file-input-video-gallery';
+  document.getElementById(inputId).click();
+  document.getElementById(inputId).onchange = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    showMediaCommentSheet(files, 'video');
+    e.target.value = '';
+  };
+}
+
+// ── MEDIA COMMENT SHEET ──
+let pendingMediaFiles = null;
+let pendingMediaType = null;
+
+function showMediaCommentSheet(files, type) {
+  pendingMediaFiles = files;
+  pendingMediaType = type;
+  selectedPrivacy = 'familia';
+
+  const overlay = document.getElementById('overlay');
+  const content = document.getElementById('sheet-content');
+  overlay.classList.add('open');
+
+  const typeLabel = type === 'photo'
+    ? (files.length > 1 ? `${files.length} fotos` : '1 foto')
+    : '1 video';
+
+  const typeIcon = type === 'photo' ? '📷' : '🎬';
+
+  content.innerHTML = `
+    <div class="sheet-title">${typeIcon} ${typeLabel} lista${files.length > 1 ? 's' : ''}</div>
+    <textarea class="note-area" id="media-comment" placeholder="Agrega un comentario (opcional)..." style="min-height:80px"></textarea>
+    <div class="privacy-select" style="margin-top:10px">
+      <button class="priv-btn selected" id="priv-familia" onclick="selectPrivacy('familia')">🌐 Familia</button>
+      <button class="priv-btn" id="priv-privado" onclick="selectPrivacy('privado')">🔒 Solo yo</button>
+    </div>
+    <button class="sheet-submit" onclick="confirmMediaUpload()">Guardar recuerdo</button>
+  `;
+}
+
+async function confirmMediaUpload() {
+  const comment = document.getElementById('media-comment')?.value.trim() || '';
+  closeSheet();
+
+  if (pendingMediaType === 'photo') {
+    await handlePhotoSelectedWithComment(pendingMediaFiles, comment);
+  } else if (pendingMediaType === 'video') {
+    await handleVideoSelectedWithComment(pendingMediaFiles[0], comment);
   }
+
+  pendingMediaFiles = null;
+  pendingMediaType = null;
 }
 
 // ── GOOGLE PHOTOS ──
@@ -2047,7 +2144,11 @@ function openGooglePhotos() {
 async function handlePhotoSelected(e) {
   const files = Array.from(e.target.files);
   if (!files.length) return;
+  showMediaCommentSheet(files, 'photo');
+  e.target.value = '';
+}
 
+async function handlePhotoSelectedWithComment(files, comment) {
   showUploadProgress(`Guardando ${files.length > 1 ? 'recuerdos' : 'un recuerdo'} en foto${files.length > 1 ? 's' : ''}...`);
 
   const fileIds = [];
@@ -2057,31 +2158,37 @@ async function handlePhotoSelected(e) {
   }
 
   if (fileIds.length > 0) {
-    const entry = buildEntry('photo', { fileIds });
+    const extras = { fileIds };
+    if (comment) extras.text = comment;
+    const entry = buildEntry('photo', extras);
     await saveEntryToMeta(entry);
-    showToast(`${fileIds.length} foto${fileIds.length > 1 ? 's' : ''} guardada${fileIds.length > 1 ? 's' : ''} ✓`);
+    showToast(`${fileIds.length > 1 ? 'Recuerdos guardados' : 'Recuerdo guardado'} ✓`);
   }
 
   removeUploadProgress();
-  e.target.value = '';
 }
 
 // ── HANDLE VIDEO ──
 async function handleVideoSelected(e) {
   const file = e.target.files[0];
   if (!file) return;
+  showMediaCommentSheet([file], 'video');
+  e.target.value = '';
+}
 
+async function handleVideoSelectedWithComment(file, comment) {
   showUploadProgress('Guardando un recuerdo en video...');
 
   const fileId = await uploadFileToDrive(file, sharedFolderId);
   if (fileId) {
-    const entry = buildEntry('video', { fileId });
+    const extras = { fileId };
+    if (comment) extras.text = comment;
+    const entry = buildEntry('video', extras);
     await saveEntryToMeta(entry);
-    showToast('Video guardado ✓');
+    showToast('Recuerdo en video guardado ✓');
   }
 
   removeUploadProgress();
-  e.target.value = '';
 }
 
 // ── RECORDING ──
