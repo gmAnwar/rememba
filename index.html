@@ -2638,6 +2638,8 @@ function applyNavMode() {
   const stripH = document.getElementById('day-strip');
   const stripV = document.getElementById('day-strip-vertical');
   const header = document.querySelector('.header');
+  const prevBtn = document.getElementById('strip-prev');
+  const nextBtn = document.getElementById('strip-next');
 
   if (navMode === 'left') {
     stripH.style.display = 'none';
@@ -2645,6 +2647,8 @@ function applyNavMode() {
     header.style.borderBottom = 'none';
     header.style.paddingBottom = '0';
     btn.textContent = '↔ Izq';
+    if (prevBtn) prevBtn.style.display = 'none';
+    if (nextBtn) nextBtn.style.display = 'none';
     renderDayStripVertical();
   } else {
     stripH.style.display = 'flex';
@@ -2652,6 +2656,8 @@ function applyNavMode() {
     header.style.borderBottom = '';
     header.style.paddingBottom = '';
     btn.textContent = '↕ Arriba';
+    if (prevBtn) prevBtn.style.display = 'flex';
+    if (nextBtn) nextBtn.style.display = 'flex';
     renderDayStrip();
   }
 }
