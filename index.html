@@ -229,9 +229,14 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
-    overflow: hidden;
     width: 52px;
-    height: 462px; /* exactamente 7 pills de 66px = 462px */
+    flex-shrink: 0;
+    will-change: transform;
+  }
+  .day-strip-vertical-inner-wrap {
+    overflow: hidden;
+    height: 462px;
+    width: 52px;
     flex-shrink: 0;
   }
   .day-strip-vertical .day-pill {
@@ -1261,7 +1266,7 @@
   <div class="app-body" id="app-body">
     <div class="day-strip-vertical-wrapper" id="day-strip-vertical-wrapper">
       <button class="v-arrow-btn" onclick="scrollVerticalStrip(-1)">&#8963;</button>
-      <div class="day-strip-vertical" id="day-strip-vertical"></div>
+      <div class="day-strip-vertical-inner-wrap"><div class="day-strip-vertical" id="day-strip-vertical"></div></div>
       <button class="v-arrow-btn" onclick="scrollVerticalStrip(1)">&#8964;</button>
     </div>
     <div class="timeline" id="timeline"></div>
@@ -2744,21 +2749,19 @@ function scrollVerticalStrip(dir) {
   const pills = strip.querySelectorAll('.day-pill');
   const max = Math.max(0, pills.length - 7);
   vStripOffset = Math.max(0, Math.min(max, vStripOffset + dir));
-  const itemH = getVItemH();
   strip.style.transition = 'transform 0.2s ease';
-  strip.style.transform = `translateY(${-vStripOffset * itemH}px)`;
+  strip.style.transform = `translateY(${-vStripOffset * 66}px)`;
 }
 
 function centerActivePillVertical() {
   const strip = document.getElementById('day-strip-vertical');
   const pills = Array.from(strip.querySelectorAll('.day-pill'));
   const activeIdx = pills.findIndex(p => p.classList.contains('active'));
-  if (activeIdx === -1) return;
+  if (activeIdx === -1) { vStripOffset = 0; return; }
   const max = Math.max(0, pills.length - 7);
   vStripOffset = Math.max(0, Math.min(max, activeIdx - 3));
-  const itemH = getVItemH();
   strip.style.transition = 'none';
-  strip.style.transform = `translateY(${-vStripOffset * itemH}px)`;
+  strip.style.transform = `translateY(${-vStripOffset * 66}px)`;
 }
 
 function openSidePanel() {
