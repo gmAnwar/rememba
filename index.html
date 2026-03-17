@@ -1573,6 +1573,28 @@ function renderTimeline() {
   dayEntries.forEach(entry => tl.appendChild(buildEntryCard(entry)));
   renderHeader();
 
+  // Cargar fotos como blob para evitar el problema del token expirado
+  loadPhotosAsBlob();
+}
+
+async function loadPhotosAsBlob() {
+  const imgs = document.querySelectorAll('img[data-fid]');
+  for (const img of imgs) {
+    if (img.src && img.src.startsWith('blob:')) continue; // ya cargada
+    const fid = img.getAttribute('data-fid');
+    if (!fid) continue;
+    try {
+      const r = await fetch('https://www.googleapis.com/drive/v3/files/' + fid + '?alt=media', {
+        headers: { Authorization: 'Bearer ' + accessToken }
+      });
+      if (!r.ok) continue;
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      img.src = url;
+      img.onclick = () => openLightbox(url);
+      img.style.cursor = 'pointer';
+    } catch(e) { console.error('Photo load error:', e); }
+  }
 }
 
 function buildEntryCard(entry) {
@@ -1599,9 +1621,8 @@ function buildEntryCard(entry) {
     entry.fileIds.forEach((fid, i) => {
       const isWide = count === 3 && i === 0;
       bodyHTML += `<img class="photo-thumb${isWide ? ' wide' : ''}" 
-        src="https://www.googleapis.com/drive/v3/files/${fid}?alt=media&access_token=${accessToken}"
-        loading="lazy"
-        onclick="openLightbox('https://www.googleapis.com/drive/v3/files/${fid}?alt=media&access_token=${accessToken}')"
+        data-fid="${fid}"
+        style="background:var(--surface2)"
         alt="foto">`;
     });
     bodyHTML += `</div>`;
@@ -1681,10 +1702,7 @@ function openSheet(type) {
           <div class="so-icon ei-photo">📷</div>
           <div><div class="so-label">Subir fotos</div><div class="so-sub">Desde tu cámara o galería</div></div>
         </button>
-        <button class="sheet-opt" onclick="closeSheet(); openGooglePhotos()">
-          <div class="so-icon" style="background:rgba(234,67,53,0.12)">🖼️</div>
-          <div><div class="so-label">Google Fotos</div><div class="so-sub">Abre Google Fotos para elegir</div></div>
-        </button>
+
         <button class="sheet-opt" onclick="closeSheet(); setTimeout(() => openSheet('audio'), 100)">
           <div class="so-icon ei-audio">🎙</div>
           <div><div class="so-label">Grabar audio</div><div class="so-sub">Nota de voz — se guarda en Drive</div></div>
@@ -1731,10 +1749,7 @@ function openSheet(type) {
           <div class="so-icon ei-video">📹</div>
           <div><div class="so-label">Grabar ahora</div><div class="so-sub">Usa la cámara de tu cel</div></div>
         </button>
-        <button class="sheet-opt" onclick="closeSheet(); openGooglePhotos()">
-          <div class="so-icon" style="background:rgba(234,67,53,0.12)">🖼️</div>
-          <div><div class="so-label">Google Fotos</div><div class="so-sub">Abre Google Fotos para elegir</div></div>
-        </button>
+
       </div>
     `;
     return;
@@ -2033,7 +2048,7 @@ async function handlePhotoSelected(e) {
   const files = Array.from(e.target.files);
   if (!files.length) return;
 
-  showUploadProgress(`Subiendo ${files.length} foto${files.length > 1 ? 's' : ''}...`);
+  showUploadProgress(`Guardando ${files.length > 1 ? 'recuerdos' : 'un recuerdo'} en foto${files.length > 1 ? 's' : ''}...`);
 
   const fileIds = [];
   for (const file of files) {
@@ -2056,7 +2071,7 @@ async function handleVideoSelected(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  showUploadProgress('Subiendo video...');
+  showUploadProgress('Guardando un recuerdo en video...');
 
   const fileId = await uploadFileToDrive(file, sharedFolderId);
   if (fileId) {
@@ -2121,7 +2136,7 @@ async function handleRecordingStop() {
   const duration = `${m}:${s.toString().padStart(2,'0')}`;
 
   closeSheet();
-  showUploadProgress('Guardando audio...');
+  showUploadProgress('Guardando un recuerdo en audio...');
 
   const file = new File([blob], `audio_${Date.now()}.webm`, { type: 'audio/webm' });
   const fileId = await uploadFileToDrive(file, sharedFolderId);
