@@ -1612,8 +1612,10 @@ function renderDayStrip() {
   strip.innerHTML = '';
   const today = new Date();
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+  const isCurrentMonth = selectedMonth === today.getMonth() && selectedYear === today.getFullYear();
+  const maxDay = isCurrentMonth ? today.getDate() : daysInMonth;
 
-  for (let d = 1; d <= daysInMonth; d++) {
+  for (let d = 1; d <= maxDay; d++) {
     if (d > today.getDate() && selectedMonth === today.getMonth() && selectedYear === today.getFullYear()) break;
 
     const date = new Date(selectedYear, selectedMonth, d);
@@ -2700,8 +2702,10 @@ function renderDayStripVertical() {
   strip.innerHTML = '';
   const today = new Date();
   const daysInMonth = new Date(selectedYear, selectedMonth + 1, 0).getDate();
+  const isCurrentMonth = selectedMonth === today.getMonth() && selectedYear === today.getFullYear();
+  const maxDay = isCurrentMonth ? today.getDate() : daysInMonth;
 
-  for (let d = 1; d <= daysInMonth; d++) {
+  for (let d = 1; d <= maxDay; d++) {
     const date = new Date(selectedYear, selectedMonth, d);
     const hasEntry = entries.some(e => {
       const ed = new Date(e.timestamp);
