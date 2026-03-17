@@ -1435,10 +1435,11 @@ function initGoogleAuth() {
   script.src = 'https://accounts.google.com/gsi/client';
   script.onload = () => {
     tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: handleTokenResponse,
-    });
+  client_id: CLIENT_ID,
+  scope: SCOPES,
+  prompt: '',
+  callback: handleTokenResponse,
+});
   };
   document.head.appendChild(script);
 }
