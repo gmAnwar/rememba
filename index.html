@@ -216,7 +216,6 @@
   .day-strip-vertical::-webkit-scrollbar { display: none; }
   .day-strip-vertical .day-pill {
     flex-shrink: 0;
-    min-height: 62px;
   }
 
   /* Layout con columna izquierda */
@@ -252,16 +251,15 @@
   .day-pill:hover { background: rgba(255,255,255,0.05); }
   .day-pill.active { background: var(--text); }
 
-  /* Vertical pill — más compacto */
+  /* Vertical pill — mismo estilo que horizontal */
   .day-strip-vertical .day-pill {
     min-width: unset;
-    width: 52px;
-    padding: 6px 4px;
-    border-radius: 10px;
-    gap: 2px;
+    width: 56px;
+    padding: 8px 6px;
+    border-radius: 12px;
+    gap: 4px;
+    flex-shrink: 0;
   }
-  .day-strip-vertical .dp-name { font-size: 9px; }
-  .day-strip-vertical .dp-num { font-size: 15px; }
 
   .dp-name {
     font-size: 10px;
