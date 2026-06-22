@@ -786,7 +786,7 @@
   .toast.show { opacity: 1; }
 
   /* Hidden inputs */
-  #file-input-photo, #file-input-video { display: none; }
+  #file-input-photo, #file-input-video, #file-input-video-gallery { display: none; }
 
   /* Lightbox */
   .lightbox {
@@ -1435,11 +1435,10 @@ function initGoogleAuth() {
   script.src = 'https://accounts.google.com/gsi/client';
   script.onload = () => {
     tokenClient = google.accounts.oauth2.initTokenClient({
-  client_id: CLIENT_ID,
-  scope: SCOPES,
-  prompt: '',
-  callback: handleTokenResponse,
-});
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: handleTokenResponse,
+    });
   };
   document.head.appendChild(script);
 }
@@ -1554,12 +1553,7 @@ async function getOrCreateFolder(name, parentId) {
   return f.id;
 }
 
-async function driveApi(path, options = {}) {
-  // Si el token está por expirar, renovar silenciosamente
-  if (!accessToken) {
-    tokenClient.requestAccessToken();
-    await new Promise(r => setTimeout(r, 1000));
-  }
+async function driveApi(path, options = {}, isRetry = false) {
   const r = await fetch(`https://www.googleapis.com/drive/v3/${path}`, {
     ...options,
     headers: {
@@ -1567,14 +1561,16 @@ async function driveApi(path, options = {}) {
       ...(options.headers || {})
     }
   });
-  if (r.status === 401) {
-    // Token expirado — renovar y reintentar
-    tokenClient.requestAccessToken();
+  if (r.status === 401 && !isRetry) {
+    // Token expirado — renovar en silencio (sin pantalla de login) y reintentar una vez
+    try {
+      tokenClient.requestAccessToken({ prompt: 'none' });
+    } catch(e) { console.error('Silent re-auth error:', e); }
     await new Promise(r => setTimeout(r, 2000));
-    return driveApi(path, options);
+    return driveApi(path, options, true);
   }
   if (!r.ok) {
-    const err = await r.json();
+    const err = await r.json().catch(() => ({}));
     console.error('Drive API error:', err);
     return {};
   }
